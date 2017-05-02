@@ -1,0 +1,25 @@
+{
+  "name": "hubot-kredits",
+  "version": "1.0.0",
+  "description": "Kosmos Kredits functionality for chat bots",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "dependencies": {
+    "node-fetch": "^1.6.3"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/67P/hubot-kredits.git"
+  },
+  "keywords": [
+    "kosmos"
+  ],
+  "author": "Sebastian Kippe <sebastian@kip.pe>",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/67P/hubot-kredits/issues"
+  },
+  "homepage": "https://github.com/67P/hubot-kredits#readme"
+}
