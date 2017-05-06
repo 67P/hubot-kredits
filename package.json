@@ -6,10 +6,14 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
+  "bin": {
+    "kredits-wallet-create": "scripts/create-wallet.js"
+  },
   "dependencies": {
     "ethereumjs-wallet": "mvayngrib/ethereumjs-wallet",
     "kredits-contracts": "67p/kredits-contracts",
     "node-fetch": "^1.6.3",
+    "prompt": "^1.0.0",
     "web3": "^0.18.4",
     "web3-provider-engine": "^12.0.3"
   },
