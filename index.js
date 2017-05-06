@@ -26,17 +26,18 @@ let hubotWalletAddress = '0x' + wallet.getAddress().toString('hex');
 
 engine.addProvider(new WalletSubprovider(wallet, {}));
 engine.addProvider(new Web3Subprovider(new Web3.providers.HttpProvider(providerUrl)));
+// TODO only start engine if providerURL is accessible
 engine.start();
 
 let web3 = new Web3(engine);
 let contracts = kreditsContracts(web3);
 let Kredits = contracts['Kredits'];
 
-console.log('[HUBOT-KREDITS] wallet address: ' + hubotWalletAddress);
+console.log('[HUBOT-KREDITS] Wallet address: ' + hubotWalletAddress);
 web3.eth.getBalance(hubotWalletAddress, function (err, balance) {
-  if (err) { console.log('[HUBOT-KREDITS] error checking balance'); return; }
+  if (err) { console.log('[HUBOT-KREDITS] Error checking balance'); return; }
   if (balance <= 0) {
-    console.log('[HUBOT-KREDITS] Hubot is broke. Please sond some eth to ' + hubotWalletAddress);
+    console.log('[HUBOT-KREDITS] Hubot is broke. Please send some ETH to ' + hubotWalletAddress);
   }
 });
 
