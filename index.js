@@ -35,21 +35,86 @@ engine.addProvider(new Web3Subprovider(new Web3.providers.HttpProvider(providerU
 engine.start();
 
 let web3 = new Web3(engine);
+web3.eth.defaultAccount = hubotWalletAddress;
+
 let contracts = kreditsContracts(web3, config);
-let Kredits = contracts['Kredits'];
+let kredits = contracts['Kredits'];
 
 console.log('[HUBOT-KREDITS] Wallet address: ' + hubotWalletAddress);
-web3.eth.getBalance(hubotWalletAddress, function (err, balance) {
-  if (err) { console.log('[HUBOT-KREDITS] Error checking balance'); return; }
-  if (balance <= 0) {
-    console.log('[HUBOT-KREDITS] Hubot is broke. Please send some ETH to ' + hubotWalletAddress);
-  }
-});
 
 (function() {
   "use strict";
 
+  web3.eth.getBalance(hubotWalletAddress, function (err, balance) {
+    if (err) { console.log('[HUBOT-KREDITS] Error checking balance'); return; }
+    if (balance <= 0) {
+      console.log('[HUBOT-KREDITS] Hubot is broke. Please send some ETH to ' + hubotWalletAddress);
+    }
+  });
+
+  let getValueFromContract = function(contractMethod, ...args) {
+    console.log('[kredits] read from contract', contractMethod, ...args);
+    return new Promise((resolve, reject) => {
+      kredits[contractMethod](...args, (err, data) => {
+        if (err) { reject(err); }
+        resolve(data);
+      });
+    });
+  };
+
+  let getContributorData = function(i) {
+    let promise = new Promise((resolve, reject) => {
+      getValueFromContract('contributorAddresses', i).then(address => {
+        console.log('address', address);
+        getValueFromContract('contributors', address).then(person => {
+          console.log('person', person);
+          let contributor = {
+            address: address,
+            github_username: person[1],
+            github_uid: person[0],
+            ipfsHash: person[2]
+          };
+          console.log('[kredits] contributor', contributor);
+          resolve(contributor);
+        });
+      }).catch(err => reject(err));
+    });
+    return promise;
+  };
+
+  let getContributors = function() {
+    return getValueFromContract('contributorsCount').then(contributorsCount => {
+      let contributors = [];
+
+      for(var i = 0; i < contributorsCount.toNumber(); i++) {
+        contributors.push(getContributorData(i));
+      }
+
+      return Promise.all(contributors);
+    });
+  };
+
+  let getContributorByGithubUser = function(username) {
+    let promise = new Promise((resolve, reject) => {
+      getContributors().then(contributors => {
+        let contrib = contributors.find(c => {
+          return c.github_username === username;
+        });
+        if (contrib) {
+          resolve(contrib);
+        } else {
+          reject();
+        }
+      });
+    });
+    return promise;
+  };
+
   module.exports = function(robot) {
+
+    function messageRoom(message) {
+      robot.messageRoom(process.env.KREDITS_ROOM, message);
+    }
 
     function amountFromIssueLabels(issue) {
       let kreditsLabel = issue.labels.map(l => l.name)
@@ -75,12 +140,19 @@ web3.eth.getBalance(hubotWalletAddress, function (err, balance) {
     }
 
     function createProposal(recipient, amount, url/*, metaData*/) {
-      return new Promise((resolve/*, reject*/) => {
+      return new Promise((resolve, reject) => {
         // TODO write metaData to IPFS
         console.log(`Creating proposal to issue ${amount}₭S to ${recipient} for ${url}...`);
 
-        Kredits.addProposal(recipient, amount, url, '');
-        robot.messageRoom(process.env.KREDITS_ROOM, `new proposal: ${amount} for ${recipient}`);
+        getContributorByGithubUser(recipient).then(c => {
+          kredits.addProposal(c.address, amount, url, '', (e/* , d */) => {
+            if (e) { reject(); return; }
+            messageRoom(`New proposal created: ${amount} for ${recipient}`);
+          });
+        }, () => {
+          messageRoom(`Couldn\'t find contributor data for ${recipient}. Please add them first!`);
+        });
+
         resolve();
       });
     }

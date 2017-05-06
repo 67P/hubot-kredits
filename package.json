@@ -11,7 +11,7 @@
   },
   "dependencies": {
     "ethereumjs-wallet": "mvayngrib/ethereumjs-wallet",
-    "kredits-contracts": "67p/kredits-contracts",
+    "kredits-contracts": "2.0.0",
     "node-fetch": "^1.6.3",
     "prompt": "^1.0.0",
     "web3": "^0.18.4",
