@@ -7,14 +7,9 @@
 //   KREDITS_WALLET_PATH: Path to a etherum wallet JSON file
 //   KREDITS_WALLET_PASSWORD: Wallet password
 //
-// Authors:
-//   Sebastian Kippe <sebastian@kip.pe>
-
-// const fs = require('fs');
-//
+const fs = require('fs');
 const fetch = require('node-fetch');
 const kreditsContracts = require('kredits-contracts');
-const fs = require('fs');
 const ProviderEngine = require('web3-provider-engine');
 const Wallet = require('ethereumjs-wallet');
 const WalletSubprovider = require('ethereumjs-wallet/provider-engine');
@@ -36,12 +31,11 @@ engine.start();
 let web3 = new Web3(engine);
 let contracts = kreditsContracts(web3);
 let Kredits = contracts['Kredits'];
-let Token = contracts['Token'];
 
 console.log('[HUBOT-KREDITS] wallet address: ' + hubotWalletAddress);
-web3.eth.getBalance('eee2de74de31d2e3ef24cb0f6959fd88b59267bd', function (err, balance) {
+web3.eth.getBalance(hubotWalletAddress, function (err, balance) {
   if (err) { console.log('[HUBOT-KREDITS] error checking balance'); return; }
-  if (!balance > 0) {
+  if (balance <= 0) {
     console.log('[HUBOT-KREDITS] Hubot is broke. Please sond some eth to ' + hubotWalletAddress);
   }
 });

@@ -20,7 +20,11 @@
   "keywords": [
     "kosmos"
   ],
-  "author": "Sebastian Kippe <sebastian@kip.pe>",
+  "author": "Kosmos Developers <mail@kosmos.org>",
+  "contributors": [
+    "Sebastian Kippe <sebastian@kip.pe>",
+    "Michael Bumann <hello@michaelbumann.com>"
+  ],
   "license": "MIT",
   "bugs": {
     "url": "https://github.com/67P/hubot-kredits/issues"
