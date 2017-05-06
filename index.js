@@ -24,13 +24,18 @@ let wallet = Wallet.fromV3(JSON.parse(walletJson), process.env.KREDITS_WALLET_PA
 let providerUrl = process.env.KREDITS_PROVIDER_URL || 'http://localhost:8545';
 let hubotWalletAddress = '0x' + wallet.getAddress().toString('hex');
 
+let config = {};
+if (process.env.KREDITS_CONTRACT_ADDRESS) {
+  config = { Kredits: { address: process.env.KREDITS_CONTRACT_ADDRESS }};
+}
+
 engine.addProvider(new WalletSubprovider(wallet, {}));
 engine.addProvider(new Web3Subprovider(new Web3.providers.HttpProvider(providerUrl)));
 // TODO only start engine if providerURL is accessible
 engine.start();
 
 let web3 = new Web3(engine);
-let contracts = kreditsContracts(web3);
+let contracts = kreditsContracts(web3, config);
 let Kredits = contracts['Kredits'];
 
 console.log('[HUBOT-KREDITS] Wallet address: ' + hubotWalletAddress);
