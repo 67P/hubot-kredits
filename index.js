@@ -235,10 +235,10 @@ const Web3 = require('web3');
           res.send(`HALP, I\'m totally broke! Not a single wei in my pocket.`);
         }
         else if (balance >= 1e+17) {
-          res.send(`my wallet contains ${balance} wei`);
+          res.send(`my wallet contains ${web3.fromWei(balance, 'ether')} ETH`);
         }
         else {
-          res.send(`I\'m almost broke! Only have ${balance} wei left in my pocket. :(`);
+          res.send(`I\'m almost broke! Only have ${web3.fromWei(balance, 'ether')} ETH left in my pocket. :(`);
         }
       });
     });
