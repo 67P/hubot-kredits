@@ -47,23 +47,35 @@ const Web3 = require('web3');
 
     robot.logger.info('[hubot-kredits] Wallet address: ' + hubotWalletAddress);
 
-    web3.eth.getBalance(hubotWalletAddress, function (err, balance) {
-      if (err) { robot.logger.error('[hubot-kredits] Error checking balance'); return; }
+    getBalance().then(balance => {
       if (balance <= 0) {
-        robot.logger.info('[hubot-kredits] Hubot is broke. Please send some ETH to ' + hubotWalletAddress);
+        messageRoom('Yo gang, I\m broke! Please drop me some ETH to ${hubotWalletAddress}. kthxbai.');
       }
     });
 
-    let getValueFromContract = function(contractMethod, ...args) {
+    function getBalance() {
+      return new Promise((resolve, reject) => {
+        web3.eth.getBalance(hubotWalletAddress, function (err, balance) {
+          if (err) {
+            robot.logger.error('[hubot-kredits] Error checking balance');
+            reject(err);
+            return;
+          }
+          resolve(balance);
+        });
+      });
+    }
+
+    function getValueFromContract(contractMethod, ...args) {
       return new Promise((resolve, reject) => {
         kredits[contractMethod](...args, (err, data) => {
           if (err) { reject(err); }
           resolve(data);
         });
       });
-    };
+    }
 
-    let getContributorData = function(i) {
+    function getContributorData(i) {
       let promise = new Promise((resolve, reject) => {
         getValueFromContract('contributorAddresses', i).then(address => {
           robot.logger.debug('address', address);
@@ -81,9 +93,9 @@ const Web3 = require('web3');
         }).catch(err => reject(err));
       });
       return promise;
-    };
+    }
 
-    let getContributors = function() {
+    function getContributors() {
       return getValueFromContract('contributorsCount').then(contributorsCount => {
         let contributors = [];
 
@@ -93,9 +105,9 @@ const Web3 = require('web3');
 
         return Promise.all(contributors);
       });
-    };
+    }
 
-    let getContributorByGithubUser = function(username) {
+    function getContributorByGithubUser(username) {
       let promise = new Promise((resolve, reject) => {
         getContributors().then(contributors => {
           let contrib = contributors.find(c => {
@@ -109,7 +121,7 @@ const Web3 = require('web3');
         });
       });
       return promise;
-    };
+    }
 
     function messageRoom(message) {
       robot.messageRoom(process.env.KREDITS_ROOM, message);
@@ -216,6 +228,20 @@ const Web3 = require('web3');
           });
       });
     }
+
+    robot.respond(/(got ETH)|(got gas)\?/i, res => {
+      getBalance().then(balance => {
+        if (balance <= 0) {
+          res.send(`HALP, I\'m totally broke! Not a single wei in my pocket.`);
+        }
+        else if (balance >= 1e+17) {
+          res.send(`my wallet contains ${balance} wei`);
+        }
+        else {
+          res.send(`I\'m almost broke! Only have ${balance} wei left in my pocket. :(`);
+        }
+      });
+    });
 
     robot.router.post('/incoming/kredits/github/'+process.env.KREDITS_WEBHOOK_TOKEN, (req, res) => {
       let evt = req.header('X-GitHub-Event');
