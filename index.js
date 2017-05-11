@@ -16,101 +16,100 @@ const WalletSubprovider = require('ethereumjs-wallet/provider-engine');
 const Web3Subprovider = require('web3-provider-engine/subproviders/web3.js');
 const Web3 = require('web3');
 
-let engine = new ProviderEngine();
-
-let walletPath = process.env.KREDITS_WALLET_PATH || './wallet.json';
-let walletJson = fs.readFileSync(walletPath);
-let wallet = Wallet.fromV3(JSON.parse(walletJson), process.env.KREDITS_WALLET_PASSWORD);
-let providerUrl = process.env.KREDITS_PROVIDER_URL || 'http://localhost:8545';
-let hubotWalletAddress = '0x' + wallet.getAddress().toString('hex');
-
-let config = {};
-if (process.env.KREDITS_CONTRACT_ADDRESS) {
-  config = { Kredits: { address: process.env.KREDITS_CONTRACT_ADDRESS }};
-}
-
-engine.addProvider(new WalletSubprovider(wallet, {}));
-engine.addProvider(new Web3Subprovider(new Web3.providers.HttpProvider(providerUrl)));
-// TODO only start engine if providerURL is accessible
-engine.start();
-
-let web3 = new Web3(engine);
-web3.eth.defaultAccount = hubotWalletAddress;
-
-let contracts = kreditsContracts(web3, config);
-let kredits = contracts['Kredits'];
-
-console.log('[HUBOT-KREDITS] Wallet address: ' + hubotWalletAddress);
-
 (function() {
   "use strict";
 
-  web3.eth.getBalance(hubotWalletAddress, function (err, balance) {
-    if (err) { console.log('[HUBOT-KREDITS] Error checking balance'); return; }
-    if (balance <= 0) {
-      console.log('[HUBOT-KREDITS] Hubot is broke. Please send some ETH to ' + hubotWalletAddress);
-    }
-  });
+  let engine = new ProviderEngine();
 
-  let getValueFromContract = function(contractMethod, ...args) {
-    console.log('[kredits] read from contract', contractMethod, ...args);
-    return new Promise((resolve, reject) => {
-      kredits[contractMethod](...args, (err, data) => {
-        if (err) { reject(err); }
-        resolve(data);
-      });
-    });
-  };
+  let walletPath = process.env.KREDITS_WALLET_PATH || './wallet.json';
+  let walletJson = fs.readFileSync(walletPath);
+  let wallet = Wallet.fromV3(JSON.parse(walletJson), process.env.KREDITS_WALLET_PASSWORD);
+  let providerUrl = process.env.KREDITS_PROVIDER_URL || 'http://localhost:8545';
+  let hubotWalletAddress = '0x' + wallet.getAddress().toString('hex');
 
-  let getContributorData = function(i) {
-    let promise = new Promise((resolve, reject) => {
-      getValueFromContract('contributorAddresses', i).then(address => {
-        console.log('address', address);
-        getValueFromContract('contributors', address).then(person => {
-          console.log('person', person);
-          let contributor = {
-            address: address,
-            github_username: person[1],
-            github_uid: person[0],
-            ipfsHash: person[2]
-          };
-          console.log('[kredits] contributor', contributor);
-          resolve(contributor);
-        });
-      }).catch(err => reject(err));
-    });
-    return promise;
-  };
+  let config = {};
+  if (process.env.KREDITS_CONTRACT_ADDRESS) {
+    config = { Kredits: { address: process.env.KREDITS_CONTRACT_ADDRESS }};
+  }
 
-  let getContributors = function() {
-    return getValueFromContract('contributorsCount').then(contributorsCount => {
-      let contributors = [];
+  engine.addProvider(new WalletSubprovider(wallet, {}));
+  engine.addProvider(new Web3Subprovider(new Web3.providers.HttpProvider(providerUrl)));
+  // TODO only start engine if providerURL is accessible
+  engine.start();
 
-      for(var i = 0; i < contributorsCount.toNumber(); i++) {
-        contributors.push(getContributorData(i));
-      }
+  let web3 = new Web3(engine);
+  web3.eth.defaultAccount = hubotWalletAddress;
 
-      return Promise.all(contributors);
-    });
-  };
-
-  let getContributorByGithubUser = function(username) {
-    let promise = new Promise((resolve, reject) => {
-      getContributors().then(contributors => {
-        let contrib = contributors.find(c => {
-          return c.github_username === username;
-        });
-        if (contrib) {
-          resolve(contrib);
-        } else {
-          reject();
-        }
-      });
-    });
-    return promise;
-  };
+  let contracts = kreditsContracts(web3, config);
+  let kredits = contracts['Kredits'];
 
   module.exports = function(robot) {
+
+    robot.logger.info('[hubot-kredits] Wallet address: ' + hubotWalletAddress);
+
+    web3.eth.getBalance(hubotWalletAddress, function (err, balance) {
+      if (err) { robot.logger.error('[hubot-kredits] Error checking balance'); return; }
+      if (balance <= 0) {
+        robot.logger.info('[hubot-kredits] Hubot is broke. Please send some ETH to ' + hubotWalletAddress);
+      }
+    });
+
+    let getValueFromContract = function(contractMethod, ...args) {
+      return new Promise((resolve, reject) => {
+        kredits[contractMethod](...args, (err, data) => {
+          if (err) { reject(err); }
+          resolve(data);
+        });
+      });
+    };
+
+    let getContributorData = function(i) {
+      let promise = new Promise((resolve, reject) => {
+        getValueFromContract('contributorAddresses', i).then(address => {
+          robot.logger.debug('address', address);
+          getValueFromContract('contributors', address).then(person => {
+            robot.logger.debug('person', person);
+            let contributor = {
+              address: address,
+              github_username: person[1],
+              github_uid: person[0],
+              ipfsHash: person[2]
+            };
+            robot.logger.debug('[kredits] contributor', contributor);
+            resolve(contributor);
+          });
+        }).catch(err => reject(err));
+      });
+      return promise;
+    };
+
+    let getContributors = function() {
+      return getValueFromContract('contributorsCount').then(contributorsCount => {
+        let contributors = [];
+
+        for(var i = 0; i < contributorsCount.toNumber(); i++) {
+          contributors.push(getContributorData(i));
+        }
+
+        return Promise.all(contributors);
+      });
+    };
+
+    let getContributorByGithubUser = function(username) {
+      let promise = new Promise((resolve, reject) => {
+        getContributors().then(contributors => {
+          let contrib = contributors.find(c => {
+            return c.github_username === username;
+          });
+          if (contrib) {
+            resolve(contrib);
+          } else {
+            reject();
+          }
+        });
+      });
+      return promise;
+    };
 
     function messageRoom(message) {
       robot.messageRoom(process.env.KREDITS_ROOM, message);
@@ -142,7 +141,7 @@ console.log('[HUBOT-KREDITS] Wallet address: ' + hubotWalletAddress);
     function createProposal(recipient, amount, url/*, metaData*/) {
       return new Promise((resolve, reject) => {
         // TODO write metaData to IPFS
-        console.log(`Creating proposal to issue ${amount}₭S to ${recipient} for ${url}...`);
+        robot.logger.debug(`Creating proposal to issue ${amount}₭S to ${recipient} for ${url}...`);
 
         getContributorByGithubUser(recipient).then(c => {
           kredits.addProposal(c.address, amount, url, '', (e/* , d */) => {
@@ -221,7 +220,7 @@ console.log('[HUBOT-KREDITS] Wallet address: ' + hubotWalletAddress);
     robot.router.post('/incoming/kredits/github/'+process.env.KREDITS_WEBHOOK_TOKEN, (req, res) => {
       let evt = req.header('X-GitHub-Event');
       let data = req.body;
-      console.log(`Received GitHub hook. Event: ${evt}, action: ${data.action}`);
+      robot.logger.debug(`Received GitHub hook. Event: ${evt}, action: ${data.action}`);
 
       if (evt === 'pull_request' && data.action === 'closed') {
         handleGitHubPullRequestClosed(data).then(() => res.send(200));
