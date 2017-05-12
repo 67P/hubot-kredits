@@ -1,6 +1,6 @@
 {
   "name": "hubot-kredits",
-  "version": "1.4.2",
+  "version": "1.4.3",
   "description": "Kosmos Kredits functionality for chat bots",
   "main": "index.js",
   "scripts": {
