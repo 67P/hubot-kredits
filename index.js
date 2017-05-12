@@ -49,7 +49,7 @@ const Web3 = require('web3');
 
     getBalance().then(balance => {
       if (balance <= 0) {
-        messageRoom('Yo gang, I\m broke! Please drop me some ETH to ${hubotWalletAddress}. kthxbai.');
+        messageRoom(`Yo gang, I\m broke! Please drop me some ETH to ${hubotWalletAddress}. kthxbai.`);
       }
     });
 
