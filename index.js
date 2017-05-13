@@ -158,10 +158,10 @@ const Web3 = require('web3');
         getContributorByGithubUser(recipient).then(c => {
           kredits.addProposal(c.address, amount, url, '', (e/* , d */) => {
             if (e) { reject(); return; }
-            messageRoom(`New proposal created: ${amount} for ${recipient}`);
+            messageRoom(`Let's give ${recipient} some kredits for ${url}! We just need two votes: https://kredits.kosmos.org`);
           });
         }, () => {
-          messageRoom(`Couldn\'t find contributor data for ${recipient}. Please add them first!`);
+          messageRoom(`I wanted to propose giving kredits to ${recipient} for ${url}, but I can't find their contact data. Please add them as a contributor: https://kredits.kosmos.org`);
         });
 
         resolve();
