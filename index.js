@@ -248,7 +248,7 @@ const Web3 = require('web3');
       let data = req.body;
       // For some reason data is contained in a payload property on one
       // machine, but directly in the root of the object on others
-      if (data.payload) { data = data.payload; }
+      if (data.payload) { data = JSON.parse(data.payload); }
 
       robot.logger.info(`Received GitHub hook. Event: ${evt}, action: ${data.action}`);
 
