@@ -246,6 +246,10 @@ const Web3 = require('web3');
     robot.router.post('/incoming/kredits/github/'+process.env.KREDITS_WEBHOOK_TOKEN, (req, res) => {
       let evt = req.header('X-GitHub-Event');
       let data = req.body;
+      // For some reason data is contained in a payload property on one
+      // machine, but directly in the root of the object on others
+      if (data.payload) { data = data.payload; }
+
       robot.logger.info(`Received GitHub hook. Event: ${evt}, action: ${data.action}`);
 
       if (evt === 'pull_request' && data.action === 'closed') {
