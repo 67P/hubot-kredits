@@ -246,13 +246,15 @@ const Web3 = require('web3');
     robot.router.post('/incoming/kredits/github/'+process.env.KREDITS_WEBHOOK_TOKEN, (req, res) => {
       let evt = req.header('X-GitHub-Event');
       let data = req.body;
-      robot.logger.debug(`Received GitHub hook. Event: ${evt}, action: ${data.action}`);
+      robot.logger.info(`Received GitHub hook. Event: ${evt}, action: ${data.action}`);
 
       if (evt === 'pull_request' && data.action === 'closed') {
         handleGitHubPullRequestClosed(data).then(() => res.send(200));
       }
       else if (evt === 'issues' && data.action === 'closed') {
         handleGitHubIssueClosed(data).then(() => res.send(200));
+      } else {
+        res.send(200);
       }
     });
 
