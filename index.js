@@ -6,8 +6,14 @@
 //   KREDITS_ROOM: Kredit proposals are posted to this chatroom
 //   KREDITS_WALLET_PATH: Path to a etherum wallet JSON file
 //   KREDITS_WALLET_PASSWORD: Wallet password
+//   KREDITS_CONTRACT_ADDRESS: Address of Kredits contract
+//   KREDITS_PROVIDER_URL: Ethereum JSON-RPC URL (default 'http://localhost:8545')
+//   IPFS_API_HOST: Host/domain (default 'localhost')
+//   IPFS_API_PORT: Port number (default '5001')
+//   IPFS_API_PROTOCOL: Protocol, e.g. 'http' or 'https' (default 'http')
 //
 const fs = require('fs');
+const util = require('util');
 const fetch = require('node-fetch');
 const kreditsContracts = require('kredits-contracts');
 const ProviderEngine = require('web3-provider-engine');
@@ -15,22 +21,23 @@ const Wallet = require('ethereumjs-wallet');
 const WalletSubprovider = require('ethereumjs-wallet/provider-engine');
 const Web3Subprovider = require('web3-provider-engine/subproviders/web3.js');
 const Web3 = require('web3');
+const ipfsAPI = require('ipfs-api');
+const schemas = require('kosmos-schemas');
+const tv4 = require('tv4');
 
 (function() {
   "use strict";
 
+  //
+  // Instantiate ethereum client and wallet
+  //
   let engine = new ProviderEngine();
 
-  let walletPath = process.env.KREDITS_WALLET_PATH || './wallet.json';
-  let walletJson = fs.readFileSync(walletPath);
-  let wallet = Wallet.fromV3(JSON.parse(walletJson), process.env.KREDITS_WALLET_PASSWORD);
+  let walletPath  = process.env.KREDITS_WALLET_PATH || './wallet.json';
+  let walletJson  = fs.readFileSync(walletPath);
+  let wallet      = Wallet.fromV3(JSON.parse(walletJson), process.env.KREDITS_WALLET_PASSWORD);
   let providerUrl = process.env.KREDITS_PROVIDER_URL || 'http://localhost:8545';
   let hubotWalletAddress = '0x' + wallet.getAddress().toString('hex');
-
-  let config = {};
-  if (process.env.KREDITS_CONTRACT_ADDRESS) {
-    config = { Kredits: { address: process.env.KREDITS_CONTRACT_ADDRESS }};
-  }
 
   engine.addProvider(new WalletSubprovider(wallet, {}));
   engine.addProvider(new Web3Subprovider(new Web3.providers.HttpProvider(providerUrl)));
@@ -40,8 +47,28 @@ const Web3 = require('web3');
   let web3 = new Web3(engine);
   web3.eth.defaultAccount = hubotWalletAddress;
 
-  let contracts = kreditsContracts(web3, config);
+  //
+  // Instantiate contracts
+  //
+  let contractConfig = {};
+  if (process.env.KREDITS_CONTRACT_ADDRESS) {
+    contractConfig = { Kredits: { address: process.env.KREDITS_CONTRACT_ADDRESS }};
+  }
+  let contracts = kreditsContracts(web3, contractConfig);
   let kredits = contracts['Kredits'];
+
+  //
+  // Instantiate IPFS API client
+  //
+  let ipfsConfig = {};
+  if (process.env.IPFS_API_HOST) {
+    ipfsConfig = {
+      host: process.env.IPFS_API_HOST,
+      port: process.env.IPFS_API_PORT,
+      protocol: process.env.IPFS_API_PROTOCOL
+    };
+  }
+  let ipfs = ipfsAPI(ipfsConfig);
 
   module.exports = function(robot) {
 
@@ -75,20 +102,57 @@ const Web3 = require('web3');
       });
     }
 
+    function loadProfileFromIPFS(contributor) {
+      let promise = new Promise((resolve, reject) => {
+        return ipfs.cat(contributor.ipfsHash, { buffer: true }).then(res => {
+          let content = res.toString();
+          let profile = JSON.parse(content);
+
+          contributor.name = profile.name;
+          contributor.kind = profile.kind;
+
+          let accounts = profile.accounts;
+          let github   = accounts.find(a => a.site === 'github.com');
+          let wiki     = accounts.find(a => a.site === 'wiki.kosmos.org');
+
+          if (github) {
+            contributor.github_username = github.username;
+            contributor.github_uid = github.uid;
+          }
+          if (wiki) {
+            contributor.wiki_username = wiki.username;
+          }
+
+          resolve(contributor);
+        }).catch((err) => {
+          console.log(err);
+          reject(err);
+        });
+      });
+
+      return promise;
+    }
+
     function getContributorData(i) {
       let promise = new Promise((resolve, reject) => {
         getValueFromContract('contributorAddresses', i).then(address => {
           robot.logger.debug('address', address);
           getValueFromContract('contributors', address).then(person => {
             robot.logger.debug('person', person);
-            let contributor = {
+            let c = {
               address: address,
-              github_username: person[1],
-              github_uid: person[0],
+              name: person[1],
+              id: person[0],
               ipfsHash: person[2]
             };
-            robot.logger.debug('[kredits] contributor', contributor);
-            resolve(contributor);
+            if (c.ipfsHash) {
+              loadProfileFromIPFS(c).then(contributor => {
+                robot.logger.debug('[kredits] contributor', contributor);
+                resolve(contributor);
+              }).catch(() => console.log('[kredits] error fetching contributor info from IPFS for '+c.name));
+            } else {
+              resolve(c);
+            }
           });
         }).catch(err => reject(err));
       });
@@ -150,15 +214,42 @@ const Web3 = require('web3');
       return amount;
     }
 
-    function createProposal(recipient, amount, url/*, metaData*/) {
-      return new Promise((resolve, reject) => {
-        // TODO write metaData to IPFS
-        robot.logger.debug(`Creating proposal to issue ${amount}₭S to ${recipient} for ${url}...`);
+    function createContributionDocument(contributor, url, description, details) {
+      let contribution = {
+        "@context": "https://schema.kosmos.org",
+        "@type": "Contribution",
+        contributor: {
+          ipfs: contributor.ipfsHash
+        },
+        kind: 'dev',
+        url: url,
+        description: description,
+        details: details
+      };
 
+      if (! tv4.validate(contribution, schemas["contribution"])) {
+        console.log('[kredits] invalid contribution data: ', util.inspect(contribution));
+        return Promise.reject('invalid contribution data');
+      }
+
+      return ipfs.add(new ipfs.Buffer(JSON.stringify(contribution)))
+        .then(res => { return res[0].hash; })
+        .catch(err => console.log(err));
+    }
+
+    function createProposal(recipient, amount, url, description, details) {
+      robot.logger.debug(`Creating proposal to issue ${amount}₭S to ${recipient} for ${url}...`);
+
+      return new Promise((resolve, reject) => {
+        // Get contributor details for GitHub user
         getContributorByGithubUser(recipient).then(c => {
-          kredits.addProposal(c.address, amount, url, '', (e/* , d */) => {
-            if (e) { reject(); return; }
-            messageRoom(`Let's give ${recipient} some kredits for ${url}! We just need two votes: https://kredits.kosmos.org`);
+          // Create document containing contribution data on IPFS
+          createContributionDocument(c, url, description, details).then(ipfsHash => {
+            // Create proposal on ethereum blockchain
+            kredits.addProposal(c.address, amount, url, ipfsHash, (e/* , d */) => {
+              if (e) { reject(e); return; }
+              messageRoom(`Let's give ${recipient} some kredits for ${url}: https://kredits.kosmos.org`);
+            });
           });
         }, () => {
           messageRoom(`I wanted to propose giving kredits to ${recipient} for ${url}, but I can't find their contact data. Please add them as a contributor: https://kredits.kosmos.org`);
@@ -185,8 +276,11 @@ const Web3 = require('web3');
           recipients = [issue.user.login];
         }
 
+        let repoName = issue.repository_url.match(/.*\/(.+\/.+)$/)[1];
+        let description = `${repoName}: ${issue.title}`;
+
         recipients.forEach(recipient => {
-          createProposal(recipient, amount, web_url, issue);
+          createProposal(recipient, amount, web_url, description, issue);
         });
 
         resolve();
@@ -220,8 +314,11 @@ const Web3 = require('web3');
             let amount = amountFromIssueLabels(issue);
             if (amount === 0) { resolve(); return; }
 
+            let repoName = pull_request.base.repo.full_name;
+            let description = `${repoName}: ${pull_request.title}`;
+
             recipients.forEach(recipient => {
-              createProposal(recipient, amount, web_url, pull_request);
+              createProposal(recipient, amount, web_url, description, pull_request);
             });
 
             resolve();
