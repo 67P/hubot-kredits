@@ -136,9 +136,9 @@ const tv4 = require('tv4');
     function getContributorData(i) {
       let promise = new Promise((resolve, reject) => {
         getValueFromContract('contributorAddresses', i).then(address => {
-          robot.logger.debug('address', address);
+          // robot.logger.debug('address', address);
           getValueFromContract('contributors', address).then(person => {
-            robot.logger.debug('person', person);
+            // robot.logger.debug('person', person);
             let c = {
               address: address,
               name: person[1],
@@ -146,8 +146,9 @@ const tv4 = require('tv4');
               ipfsHash: person[2]
             };
             if (c.ipfsHash) {
+              // robot.logger.debug('[kredits] loading contributor profile loaded for', c.name, c.ipfsHash, '...');
               loadProfileFromIPFS(c).then(contributor => {
-                robot.logger.debug('[kredits] contributor', contributor);
+                // robot.logger.debug('[kredits] contributor profile loaded for', c.name);
                 resolve(contributor);
               }).catch(() => console.log('[kredits] error fetching contributor info from IPFS for '+c.name));
             } else {
@@ -176,6 +177,22 @@ const tv4 = require('tv4');
         getContributors().then(contributors => {
           let contrib = contributors.find(c => {
             return c.github_username === username;
+          });
+          if (contrib) {
+            resolve(contrib);
+          } else {
+            reject();
+          }
+        });
+      });
+      return promise;
+    }
+
+    function getContributorByAddress(address) {
+      let promise = new Promise((resolve, reject) => {
+        getContributors().then(contributors => {
+          let contrib = contributors.find(c => {
+            return c.address === address;
           });
           if (contrib) {
             resolve(contrib);
@@ -228,17 +245,21 @@ const tv4 = require('tv4');
       };
 
       if (! tv4.validate(contribution, schemas["contribution"])) {
-        console.log('[kredits] invalid contribution data: ', util.inspect(contribution));
+        robot.logger.error('[kredits] invalid contribution data: ', util.inspect(contribution));
         return Promise.reject('invalid contribution data');
       }
 
+      // robot.logger.debug('[kredits] creating IPFS document for contribution:', contribution.description);
+
       return ipfs.add(new ipfs.Buffer(JSON.stringify(contribution)))
-        .then(res => { return res[0].hash; })
-        .catch(err => console.log(err));
+        .then(res => {
+          // robot.logger.debug('[kredits] created IPFS document', res[0].hash);
+          return res[0].hash;
+        }).catch(err => robot.logger.error('[kredits] couldn\'t create IPFS document', err));
     }
 
     function createProposal(recipient, amount, url, description, details) {
-      robot.logger.debug(`Creating proposal to issue ${amount}₭S to ${recipient} for ${url}...`);
+      robot.logger.debug(`[kredits] Creating proposal to issue ${amount}₭S to ${recipient} for ${url}...`);
 
       return new Promise((resolve, reject) => {
         // Get contributor details for GitHub user
@@ -246,16 +267,16 @@ const tv4 = require('tv4');
           // Create document containing contribution data on IPFS
           createContributionDocument(c, url, description, details).then(ipfsHash => {
             // Create proposal on ethereum blockchain
-            kredits.addProposal(c.address, amount, url, ipfsHash, (e/* , d */) => {
+            kredits.addProposal(c.address, amount, url, ipfsHash, (e, d) => {
               if (e) { reject(e); return; }
-              messageRoom(`Let's give ${recipient} some kredits for ${url}: https://kredits.kosmos.org`);
+              robot.logger.debug('[kredits] proposal created:', util.inspect(d));
+              resolve();
             });
           });
         }, () => {
           messageRoom(`I wanted to propose giving kredits to ${recipient} for ${url}, but I can't find their contact data. Please add them as a contributor: https://kredits.kosmos.org`);
+          resolve();
         });
-
-        resolve();
       });
     }
 
@@ -280,7 +301,8 @@ const tv4 = require('tv4');
         let description = `${repoName}: ${issue.title}`;
 
         recipients.forEach(recipient => {
-          createProposal(recipient, amount, web_url, description, issue);
+          createProposal(recipient, amount, web_url, description, issue)
+            .catch(err => robot.logger.error(err));
         });
 
         resolve();
@@ -318,7 +340,8 @@ const tv4 = require('tv4');
             let description = `${repoName}: ${pull_request.title}`;
 
             recipients.forEach(recipient => {
-              createProposal(recipient, amount, web_url, description, pull_request);
+              createProposal(recipient, amount, web_url, description, pull_request)
+                .catch(err => robot.logger.error(err));
             });
 
             resolve();
@@ -358,6 +381,51 @@ const tv4 = require('tv4');
         res.send(200);
       }
     });
+
+    function watchContractEvents() {
+      web3.eth.getBlockNumber((err, blockNumber) => {
+        if (err) {
+          robot.logger.error('[kredits] couldn\t get current block number');
+          return false;
+        }
+
+        // current block is the last mined one, thus we check from the next
+        // mined one onwards to prevent getting previous events
+        let nextBlock = blockNumber + 1;
+        robot.logger.debug(`[kredits] watching events from block ${nextBlock} onward`);
+
+        kredits.allEvents({fromBlock: nextBlock, toBlock: 'latest'}, (error, data) => {
+          robot.logger.debug('[kredits] received contract event', data.event);
+          if (data.blockNumber < nextBlock) {
+            // I don't know why, but the filter doesn't work as intended
+            robot.logger.debug('[kredits] dismissing old event from block', data.blockNumber);
+            return false;
+          }
+          switch (data.event) {
+            case 'ProposalCreated':
+              handleProposalCreated(data);
+              break;
+            // case 'ProposalExecuted':
+            //   handleProposalExecuted(data);
+            //   break;
+            // case 'ProposalVoted':
+            //   handleProposalVoted(data);
+            //   break;
+            // case 'Transfer':
+            //   handleTransfer(data);
+            //   break;
+          }
+        });
+      });
+    }
+
+    function handleProposalCreated(data) {
+      getContributorByAddress(data.args.recipient).then((contributor) => {
+        messageRoom(`Let's give ${contributor.name} some kredits for ${data.args.url}: https://kredits.kosmos.org`);
+      });
+    }
+
+    watchContractEvents();
 
   };
 }());
