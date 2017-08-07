@@ -101,15 +101,6 @@ const tv4 = require('tv4');
       });
     }
 
-    // function getValueFromContract(contractMethod, ...args) {
-    //   return new Promise((resolve, reject) => {
-    //     kredits.contract[contractMethod](...args, (err, data) => {
-    //       if (err) { reject(err); }
-    //       resolve(data);
-    //     });
-    //   });
-    // }
-
     function loadProfileFromIPFS(contributor) {
       let promise = new Promise((resolve, reject) => {
         return ipfs.cat(contributor.profileHash, { buffer: true }).then(res => {
