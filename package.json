@@ -13,7 +13,7 @@
     "ethereumjs-wallet": "mvayngrib/ethereumjs-wallet",
     "ipfs-api": "^14.0.3",
     "kosmos-schemas": "^1.1.2",
-    "kredits-contracts": "/home/basti/src/kosmos/kredits/kredits-contracts",
+    "kredits-contracts": "github:67P/kredits-contracts#operator",
     "node-fetch": "^1.6.3",
     "prompt": "^1.0.0",
     "tv4": "^1.3.0",
