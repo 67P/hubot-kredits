@@ -15,7 +15,7 @@
 const fs = require('fs');
 const util = require('util');
 const fetch = require('node-fetch');
-const kreditsContracts = require('kredits-contracts');
+const Kredits = require('kredits-contracts/operator');
 const ProviderEngine = require('web3-provider-engine');
 const Wallet = require('ethereumjs-wallet');
 const WalletSubprovider = require('ethereumjs-wallet/provider-engine');
@@ -52,10 +52,16 @@ const tv4 = require('tv4');
   //
   let contractConfig = {};
   if (process.env.KREDITS_CONTRACT_ADDRESS) {
-    contractConfig = { Kredits: { address: process.env.KREDITS_CONTRACT_ADDRESS }};
+    contractConfig = {
+      address: process.env.KREDITS_CONTRACT_ADDRESS,
+      networkId: 17
+    };
   }
-  let contracts = kreditsContracts(web3, contractConfig);
-  let kredits = contracts['Kredits'];
+  let kredits = new Kredits(web3, contractConfig);
+
+  // kredits.contract.web3ContractFunction()
+  // kredits.addContributor()
+  // kredits.getContributor()
 
   //
   // Instantiate IPFS API client
@@ -78,6 +84,8 @@ const tv4 = require('tv4');
       if (balance <= 0) {
         messageRoom(`Yo gang, I\'m broke! Please drop me some ETH to ${hubotWalletAddress}. kthxbai.`);
       }
+    }).catch(err => {
+      robot.logger.error('Error getting ETH balance:', err);
     });
 
     function getBalance() {
@@ -93,18 +101,9 @@ const tv4 = require('tv4');
       });
     }
 
-    function getValueFromContract(contractMethod, ...args) {
-      return new Promise((resolve, reject) => {
-        kredits[contractMethod](...args, (err, data) => {
-          if (err) { reject(err); }
-          resolve(data);
-        });
-      });
-    }
-
     function loadProfileFromIPFS(contributor) {
       let promise = new Promise((resolve, reject) => {
-        return ipfs.cat(contributor.ipfsHash, { buffer: true }).then(res => {
+        return ipfs.cat(contributor.profileHash, { buffer: true }).then(res => {
           let content = res.toString();
           let profile = JSON.parse(content);
 
@@ -133,38 +132,35 @@ const tv4 = require('tv4');
       return promise;
     }
 
-    function getContributorData(i) {
-      let promise = new Promise((resolve, reject) => {
-        getValueFromContract('contributorAddresses', i).then(address => {
-          // robot.logger.debug('address', address);
-          getValueFromContract('contributors', address).then(person => {
-            // robot.logger.debug('person', person);
-            let c = {
-              address: address,
-              name: person[1],
-              id: person[0],
-              ipfsHash: person[2]
-            };
-            if (c.ipfsHash) {
-              // robot.logger.debug('[kredits] loading contributor profile loaded for', c.name, c.ipfsHash, '...');
-              loadProfileFromIPFS(c).then(contributor => {
-                // robot.logger.debug('[kredits] contributor profile loaded for', c.name);
-                resolve(contributor);
-              }).catch(() => console.log('[kredits] error fetching contributor info from IPFS for '+c.name));
-            } else {
-              resolve(c);
-            }
-          });
-        }).catch(err => reject(err));
+    function getContributorData(id) {
+      let promise = new Promise((resolve/*, reject */) => {
+        kredits.getContributor(id).then(contributor => {
+          robot.logger.info('[kredits] contributor', contributor);
+          if (contributor.profileHash) {
+            // robot.logger.info('[kredits] loading contributor profile loaded for', c.name, c.profileHash, '...');
+            loadProfileFromIPFS(contributor).then(contributor => {
+              // robot.logger.info('[kredits] contributor profile loaded for', c.name);
+              resolve(contributor);
+            }).catch(() => {
+              robot.logger.error('[kredits] error fetching contributor info from IPFS for #'+contributor.id);
+              resolve(contributor);
+            });
+          } else {
+            resolve(contributor);
+          }
+        });
       });
+
       return promise;
     }
 
     function getContributors() {
-      return getValueFromContract('contributorsCount').then(contributorsCount => {
+      robot.logger.info('[kredits] getting contributors...');
+      return kredits.contributorsCount().then(contributorsCount => {
+        robot.logger.info('[kredits] count: ', contributorsCount.toNumber());
         let contributors = [];
 
-        for(var i = 0; i < contributorsCount.toNumber(); i++) {
+        for (var i = 1; i <= contributorsCount.toNumber(); i++) {
           contributors.push(getContributorData(i));
         }
 
@@ -236,7 +232,7 @@ const tv4 = require('tv4');
         "@context": "https://schema.kosmos.org",
         "@type": "Contribution",
         contributor: {
-          ipfs: contributor.ipfsHash
+          ipfs: contributor.profileHash
         },
         kind: 'dev',
         url: url,
@@ -360,6 +356,8 @@ const tv4 = require('tv4');
         else {
           res.send(`I\'m almost broke! Only have ${web3.fromWei(balance, 'ether')} ETH left in my pocket. :(`);
         }
+      }).catch(err => {
+        robot.logger.error('Error getting ETH balance:', err);
       });
     });
 
@@ -382,6 +380,31 @@ const tv4 = require('tv4');
       }
     });
 
+    //
+    // STAT QUERIES
+    //
+
+    // robot.respond(/^kredits top (\d+)$/i, res => {
+    // });
+
+    robot.hear(/toot/i, res => {
+      // robot.logger.info(kredits.config.address, kredits.contractName, kredits.networkId/* , kredits.contract */);
+
+      getContributors().then(contributors => {
+        contributors.forEach(c => {
+          res.send(c.name);
+          res.send(c.profileHash);
+          res.send('---');
+        });
+      }).catch(err => { res.send('Sorry, something went wrong with getting the contributor list:');
+        res.send(err);
+      });
+    });
+
+    //
+    // CONTRACT EVENTS
+    //
+
     function watchContractEvents() {
       web3.eth.getBlockNumber((err, blockNumber) => {
         if (err) {
@@ -394,7 +417,7 @@ const tv4 = require('tv4');
         let nextBlock = blockNumber + 1;
         robot.logger.debug(`[kredits] watching events from block ${nextBlock} onward`);
 
-        kredits.allEvents({fromBlock: nextBlock, toBlock: 'latest'}, (error, data) => {
+        kredits.contract.allEvents({fromBlock: nextBlock, toBlock: 'latest'}, (error, data) => {
           robot.logger.debug('[kredits] received contract event', data.event);
           if (data.blockNumber < nextBlock) {
             // I don't know why, but the filter doesn't work as intended
