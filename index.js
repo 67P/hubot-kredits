@@ -152,73 +152,77 @@ module.exports = async function(robot) {
   }
 
   function handleGitHubIssueClosed(data) {
-    return new Promise((resolve/*, reject*/) => {
-      // fs.writeFileSync('tmp/github-issue.json', JSON.stringify(data, null, 4));
-      let recipients;
-      let issue        = data.issue;
-      let assignees    = issue.assignees.map(a => a.login);
-      let web_url      = issue.html_url;
+    let recipients;
+    let issue        = data.issue;
+    let assignees    = issue.assignees.map(a => a.login);
+    let web_url      = issue.html_url;
 
-      let amount = amountFromIssueLabels(issue);
-      if (amount === 0) { resolve(); return; }
+    let amount = amountFromIssueLabels(issue);
+    if (amount === 0) {
+      console.log('Proposal amount from issue label is zero; ignoring');
+      return Promise.resolve();
+    }
 
-      if (assignees.length > 0) {
-        recipients = assignees;
-      } else {
-        recipients = [issue.user.login];
-      }
+    if (assignees.length > 0) {
+      recipients = assignees;
+    } else {
+      recipients = [issue.user.login];
+    }
 
-      let repoName = issue.repository_url.match(/.*\/(.+\/.+)$/)[1];
-      let description = `${repoName}: ${issue.title}`;
+    let repoName = issue.repository_url.match(/.*\/(.+\/.+)$/)[1];
+    let description = `${repoName}: ${issue.title}`;
 
-      recipients.forEach(recipient => {
+    let proposalPromisses = [];
+    recipients.forEach(recipient => {
+      proposalPromisses.push(
         createProposal(recipient, amount, description, web_url, issue)
-          .catch(err => robot.logger.error(err));
-      });
-
-      resolve();
+          .catch(err => robot.logger.error(err))
+      );
     });
+
+    return Promise.all(proposalPromisses);
   }
 
   function handleGitHubPullRequestClosed(data) {
-    return new Promise((resolve, reject) => {
-      let recipients;
-      let pull_request = data.pull_request;
-      let assignees    = pull_request.assignees.map(a => a.login);
-      let web_url      = pull_request._links.html.href;
-      let pr_issue_url = pull_request.issue_url;
+    let recipients;
+    let pull_request = data.pull_request;
+    let assignees    = pull_request.assignees.map(a => a.login);
+    let web_url      = pull_request._links.html.href;
+    let pr_issue_url = pull_request.issue_url;
 
-      if (assignees.length > 0) {
-        recipients = assignees;
-      } else {
-        recipients = [pull_request.user.login];
-      }
+    if (assignees.length > 0) {
+      recipients = assignees;
+    } else {
+      recipients = [pull_request.user.login];
+    }
 
-      fetch(pr_issue_url)
-        .then(response => {
-          if (response.status >= 400) {
-            reject('Bad response from fetching PR issue');
-          }
-          return response.json();
-        })
-        .then(issue => {
-          // fs.writeFileSync('tmp/github-pr-issue.json', JSON.stringify(data, null, 4));
-          let amount = amountFromIssueLabels(issue);
-          if (amount === 0) { resolve(); return; }
+    return fetch(pr_issue_url)
+      .then(response => {
+        if (response.status >= 400) {
+          throw new Error('Bad response from fetching PR issue');
+        }
+        return response.json();
+      })
+      .then(issue => {
+        let amount = amountFromIssueLabels(issue);
+        if (amount === 0) {
+          console.log('Proposal amount from issue label is zero; ignoring');
+          return;
+        }
 
-          let repoName = pull_request.base.repo.full_name;
-          let description = `${repoName}: ${pull_request.title}`;
+        let repoName = pull_request.base.repo.full_name;
+        let description = `${repoName}: ${pull_request.title}`;
 
-          let proposalPromisses = [];
-          recipients.forEach(recipient => {
-            proposalPromisses.push(
-              createProposal(recipient, amount, description, web_url, pull_request)
-                .catch(err => robot.logger.error(err))
-            );
-          });
-          return Promise.all(proposalPromisses);
+        let proposalPromisses = [];
+        recipients.forEach(recipient => {
+          console.log(`Creating proposal for ${recipient}`);
+          proposalPromisses.push(
+            createProposal(recipient, amount, description, web_url, pull_request)
+              .catch(err => robot.logger.error(err))
+          );
         });
-    });
+        return Promise.all(proposalPromisses);
+      });
   }
 
 
