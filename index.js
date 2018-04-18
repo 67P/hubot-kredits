@@ -260,7 +260,15 @@ module.exports = async function(robot) {
   function handleProposalCreated(proposalId, creatorAccount, contributorId, amount) {
     Contributor.getById(contributorId).then((contributor) => {
       Operator.getById(proposalId).then((proposal) => {
-        messageRoom(`Let's give ${contributor.name} some kredits for ${proposal.url} (${proposal.description}): https://kredits.kosmos.org`);
+        let message = `Let's give ${contributor.name} some Kredits for`;
+        if (proposal.url) {
+          message += ` ${proposal.url}`;
+        }
+        if (proposal.description) {
+          message += ` ${proposal.description}`;
+        }
+        message += ' https://kredits.kosmos.org';
+        messageRoom(message);
       });
     });
   }
