@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 const fs = require('fs');
-const Wallet = require('ethereumjs-wallet');
+const ethers = require('ethers');
 const userPrompt = require('prompt');
 
 let schema = {
@@ -24,10 +24,10 @@ userPrompt.start();
 userPrompt.get(schema, (err, result) => {
   if (err) { throw(err); }
 
-  let wallet = Wallet.generate();
-  let content = JSON.stringify(wallet.toV3(result.password));
+  let wallet = ethers.Wallet.createRandom();
+  wallet.encrypt(result.password).then((walletJSON) => {
+    fs.writeFileSync(result.path, walletJSON);
+    console.log(`\nWrote encrypted wallet config to ${result.path}`);
+  });
 
-  fs.writeFileSync(result.path, content);
-
-  console.log(`\nWrote encrypted wallet config to ${result.path}`);
 });
