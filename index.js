@@ -16,7 +16,7 @@ const fs = require('fs');
 const util = require('util');
 const fetch = require('node-fetch');
 const ethers = require('ethers');
-const kredits = require('kredits-contracts');
+const Kredits = require('kredits-contracts');
 
 const walletPath  = process.env.KREDITS_WALLET_PATH || './wallet.json';
 const walletJson  = fs.readFileSync(walletPath);
@@ -30,13 +30,25 @@ const ipfsConfig = {
 };
 
 module.exports = async function(robot) {
+  let wallet;
+  try {
+    wallet = await ethers.Wallet.fromEncryptedWallet(walletJson, process.env.KREDITS_WALLET_PASSWORD);
+  } catch(error) {
+    console.log('could not load wallet', error);
+    process.exit(1);
+  }
 
-  const wallet = await ethers.Wallet.fromEncryptedWallet(walletJson, process.env.KREDITS_WALLET_PASSWORD);
   const ethProvider = new ethers.providers.JsonRpcProvider(providerUrl, {chainId: networkId});
   ethProvider.signer = wallet;
   wallet.provider = ethProvider;
 
-  const kredits = await Kredits.setup(ethProvider, wallet, ipfsConfig);
+  let kredits;
+  try {
+    kredits = await Kredits.setup(ethProvider, wallet, ipfsConfig);
+  } catch(error) {
+    console.log('could not setup kredits', error);
+    process.exit(1);
+  }
   const Contributor = kredits.Contributor;
   const Operator = kredits.Operator;
 
@@ -47,25 +59,25 @@ module.exports = async function(robot) {
   robot.logger.info('[hubot-kredits] Wallet address: ' + wallet.address);
 
   ethProvider.getBalance(wallet.address).then(balance => {
-    robot.logger.info('[hubot-kredits] Wallet balance: ' + balance.toString());
-    if (balance.toNumber() <= 0) {
-      messageRoom(`Yo gang, I\'m broke! Please drop me some ETH to ${hubotWalletAddress}. kthxbai.`);
+    robot.logger.info('[hubot-kredits] Wallet balance: ' + ethers.utils.formatEther(balance) + 'ETH');
+    if (balance.lt(ethers.utils.parseEther('0.0001'))) {
+      messageRoom(`Yo gang, I\'m broke! Please drop me some ETH to ${wallet.address}. kthxbai.`);
     }
   });
 
-  robot.respond(/got ETH\?/i, res => {
+  robot.respond(/got ETH\??/i, res => {
     ethProvider.getBalance(wallet.address).then((balance) => {
       res.send(`my wallet contains ${ethers.utils.formatEther(balance)} ETH`);
     });
   });
 
-  robot.respond(/propose (\d*)\s?\S*\s?to (\S+)(?:\sfor (.*))?$"/i, res => {
+  robot.respond(/propose (\d*)\s?\S*\s?to (\S+)(?:\sfor (.*))?$/i, res => {
     let amount = res.match[1];
     let githubUser = res.match[2];
     let description = res.match[3];
     let url = null;
     createProposal(githubUser, amount, description, url).then((result) => {
-      messageRoom('Proposal created');
+      messageRoom('Sounds good! will be listed on http://kredits.kosmos.org in a bit');
     });
   });
 
@@ -78,6 +90,7 @@ module.exports = async function(robot) {
           });
         }
       });
+      messageRoom('http://kredits.kosmos.org');
     });
   });
 
@@ -87,7 +100,7 @@ module.exports = async function(robot) {
         return c.github_username === username;
       });
       if (!contrib) {
-        throw new Errro(`No contributor found for ${username}`);A
+        throw new Error(`No contributor found for ${username}`);A
       } else {
         return contrib;
       }
@@ -98,16 +111,19 @@ module.exports = async function(robot) {
     return getContributorByGithubUser(githubUser).then((contributor) => {
       robot.logger.debug(`[kredits] Creating proposal to issue ${amount}₭S to ${githubUser} for ${url}...`);
       let contributionAttr = {
+        contributorId: contributor.id,
+        amount: amount,
         contributorIpfsHash: contributor.ipfsHash,
         url,
         description,
         details,
         kind: 'dev'
       };
-      return Operator.add(contributionAttr).then((result) => {
+      return Operator.addProposal(contributionAttr).then((result) => {
           robot.logger.debug('[kredits] proposal created:', util.inspect(result));
         });
-      }).catch(() => {
+      }).catch((error) => {
+        console.log(error);
         messageRoom(`I wanted to propose giving kredits to ${githubUser} for ${url}, but I can't find their contact data. Please add them as a contributor: https://kredits.kosmos.org`);
       });
   }
@@ -166,7 +182,6 @@ module.exports = async function(robot) {
 
   function handleGitHubPullRequestClosed(data) {
     return new Promise((resolve, reject) => {
-      // fs.writeFileSync('tmp/github-pr.json', JSON.stringify(data, null, 4));
       let recipients;
       let pull_request = data.pull_request;
       let assignees    = pull_request.assignees.map(a => a.login);
@@ -240,7 +255,7 @@ module.exports = async function(robot) {
 
   function handleProposalCreated(proposalId, creatorAccount, contributorId, amount) {
     Contributor.getById(contributorId).then((contributor) => {
-      Operator.getBy(proposalId).then((proposal) => {
+      Operator.getById(proposalId).then((proposal) => {
         messageRoom(`Let's give ${contributor.name} some kredits for ${proposal.url} (${proposal.description}): https://kredits.kosmos.org`);
       });
     });
