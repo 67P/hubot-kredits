@@ -12,54 +12,27 @@
 //   IPFS_API_PORT: Port number (default '5001')
 //   IPFS_API_PROTOCOL: Protocol, e.g. 'http' or 'https' (default 'http')
 //
+//
+
 const fs = require('fs');
 const util = require('util');
 const fetch = require('node-fetch');
-const kreditsContracts = require('kredits-contracts');
-const ProviderEngine = require('web3-provider-engine');
-const Wallet = require('ethereumjs-wallet');
-const WalletSubprovider = require('ethereumjs-wallet/provider-engine');
-const Web3Subprovider = require('web3-provider-engine/subproviders/web3.js');
-const Web3 = require('web3');
-const ipfsAPI = require('ipfs-api');
-const schemas = require('kosmos-schemas');
-const tv4 = require('tv4');
 
-(function() {
+const ethers = require('ethers');
+
+const kredits = require('./kredits');
+
+(async function() {
   "use strict";
 
   //
   // Instantiate ethereum client and wallet
   //
-  let engine = new ProviderEngine();
-
   let walletPath  = process.env.KREDITS_WALLET_PATH || './wallet.json';
   let walletJson  = fs.readFileSync(walletPath);
-  let wallet      = Wallet.fromV3(JSON.parse(walletJson), process.env.KREDITS_WALLET_PASSWORD);
   let providerUrl = process.env.KREDITS_PROVIDER_URL || 'http://localhost:8545';
-  let hubotWalletAddress = '0x' + wallet.getAddress().toString('hex');
+  let networkId = parseInt(process.env.KREDITS_NETWORK_ID);
 
-  engine.addProvider(new WalletSubprovider(wallet, {}));
-  engine.addProvider(new Web3Subprovider(new Web3.providers.HttpProvider(providerUrl)));
-  // TODO only start engine if providerURL is accessible
-  engine.start();
-
-  let web3 = new Web3(engine);
-  web3.eth.defaultAccount = hubotWalletAddress;
-
-  //
-  // Instantiate contracts
-  //
-  let contractConfig = {};
-  if (process.env.KREDITS_CONTRACT_ADDRESS) {
-    contractConfig = { Kredits: { address: process.env.KREDITS_CONTRACT_ADDRESS }};
-  }
-  let contracts = kreditsContracts(web3, contractConfig);
-  let kredits = contracts['Kredits'];
-
-  //
-  // Instantiate IPFS API client
-  //
   let ipfsConfig = {};
   if (process.env.IPFS_API_HOST) {
     ipfsConfig = {
@@ -68,144 +41,88 @@ const tv4 = require('tv4');
       protocol: process.env.IPFS_API_PROTOCOL
     };
   }
-  let ipfs = ipfsAPI(ipfsConfig);
+
+  const wallet = await ethers.Wallet.fromEncryptedWallet(walletJson, process.env.KREDITS_WALLET_PASSWORD);
+  const ethProvider = new ethers.providers.JsonRpcProvider(providerUrl, {chainId: networkId});
+  ethProvider.signer = wallet;
+  wallet.provider = ethProvider;
+
+  const kredits = await Kredits.setup(ethProvider, wallet, ipfsConfig);
+  const Contributor = kredits.Contributor;
+  const Operator = kredits.Operator;
 
   module.exports = function(robot) {
 
-    robot.logger.info('[hubot-kredits] Wallet address: ' + hubotWalletAddress);
+    function messageRoom(message) {
+      robot.messageRoom(process.env.KREDITS_ROOM, message);
+    }
 
-    getBalance().then(balance => {
-      if (balance <= 0) {
+    robot.logger.info('[hubot-kredits] Wallet address: ' + wallet.address);
+
+    ethProvider.getBalance(wallet.address).then(balance => {
+      robot.logger.info('[hubot-kredits] Wallet balance: ' + balance.toString());
+      if (balance.toNumber() <= 0) {
         messageRoom(`Yo gang, I\'m broke! Please drop me some ETH to ${hubotWalletAddress}. kthxbai.`);
       }
     });
 
-    function getBalance() {
-      return new Promise((resolve, reject) => {
-        web3.eth.getBalance(hubotWalletAddress, function (err, balance) {
-          if (err) {
-            robot.logger.error('[hubot-kredits] Error checking balance');
-            reject(err);
-            return;
+    robot.respond(/got ETH\?/i, res => {
+      ethProvider.getBalance(wallet.address).then((balance) => {
+        res.send(`my wallet contains ${ethers.utils.formatEther(balance)} ETH`);
+      });
+    });
+
+    robot.respond(/propose (\d*)\s?\S*\s?to (\S+)(?:\sfor (.*))?$"/i, res => {
+      let amount = res.match[1];
+      let githubUser = res.match[2];
+      let description = res.match[3];
+      let url = null;
+      createProposal(githubUser, amount, description, url).then((result) => {
+        messageRoom('Proposal created');
+      });
+    });
+
+    robot.respond(/list open proposals/i, res => {
+      Operator.all().then((proposals) => {
+        proposals.forEach((proposal) => {
+          if (!proposal.executed) {
+            Contributor.getById(proposal.contributorId).then((contributor) => {
+              messageRoom(`* ${proposal.amount} kredits to ${contributor.name} for ${proposal.description}`);
+            });
           }
-          resolve(balance);
         });
       });
-    }
-
-    function getValueFromContract(contractMethod, ...args) {
-      return new Promise((resolve, reject) => {
-        kredits[contractMethod](...args, (err, data) => {
-          if (err) { reject(err); }
-          resolve(data);
-        });
-      });
-    }
-
-    function loadProfileFromIPFS(contributor) {
-      let promise = new Promise((resolve, reject) => {
-        return ipfs.cat(contributor.ipfsHash, { buffer: true }).then(res => {
-          let content = res.toString();
-          let profile = JSON.parse(content);
-
-          contributor.name = profile.name;
-          contributor.kind = profile.kind;
-
-          let accounts = profile.accounts;
-          let github   = accounts.find(a => a.site === 'github.com');
-          let wiki     = accounts.find(a => a.site === 'wiki.kosmos.org');
-
-          if (github) {
-            contributor.github_username = github.username;
-            contributor.github_uid = github.uid;
-          }
-          if (wiki) {
-            contributor.wiki_username = wiki.username;
-          }
-
-          resolve(contributor);
-        }).catch((err) => {
-          console.log(err);
-          reject(err);
-        });
-      });
-
-      return promise;
-    }
-
-    function getContributorData(i) {
-      let promise = new Promise((resolve, reject) => {
-        getValueFromContract('contributorAddresses', i).then(address => {
-          // robot.logger.debug('address', address);
-          getValueFromContract('contributors', address).then(person => {
-            // robot.logger.debug('person', person);
-            let c = {
-              address: address,
-              name: person[1],
-              id: person[0],
-              ipfsHash: person[2]
-            };
-            if (c.ipfsHash) {
-              // robot.logger.debug('[kredits] loading contributor profile loaded for', c.name, c.ipfsHash, '...');
-              loadProfileFromIPFS(c).then(contributor => {
-                // robot.logger.debug('[kredits] contributor profile loaded for', c.name);
-                resolve(contributor);
-              }).catch(() => console.log('[kredits] error fetching contributor info from IPFS for '+c.name));
-            } else {
-              resolve(c);
-            }
-          });
-        }).catch(err => reject(err));
-      });
-      return promise;
-    }
-
-    function getContributors() {
-      return getValueFromContract('contributorsCount').then(contributorsCount => {
-        let contributors = [];
-
-        for(var i = 0; i < contributorsCount.toNumber(); i++) {
-          contributors.push(getContributorData(i));
-        }
-
-        return Promise.all(contributors);
-      });
-    }
+    });
 
     function getContributorByGithubUser(username) {
-      let promise = new Promise((resolve, reject) => {
-        getContributors().then(contributors => {
-          let contrib = contributors.find(c => {
-            return c.github_username === username;
-          });
-          if (contrib) {
-            resolve(contrib);
-          } else {
-            reject();
-          }
+      return Contributor.all().then(contributors => {
+        let contrib = contributors.find(c => {
+          return c.github_username === username;
         });
+        if (!contrib) {
+          throw new Errro(`No contributor found for ${username}`);A
+        } else {
+          return contrib;
+        }
       });
-      return promise;
     }
 
-    function getContributorByAddress(address) {
-      let promise = new Promise((resolve, reject) => {
-        getContributors().then(contributors => {
-          let contrib = contributors.find(c => {
-            return c.address === address;
+    function createProposal(githubUser, amount, description, url, details) {
+      return getContributorByGithubUser(githubUser).then((contributor) => {
+        robot.logger.debug(`[kredits] Creating proposal to issue ${amount}₭S to ${githubUser} for ${url}...`);
+        let contributionAttr = {
+          contributorIpfsHash: contributor.ipfsHash,
+          url,
+          description,
+          details,
+          kind: 'dev'
+        };
+        return Operator.add(contributionAttr).then((result) => {
+            robot.logger.debug('[kredits] proposal created:', util.inspect(result));
           });
-          if (contrib) {
-            resolve(contrib);
-          } else {
-            reject();
-          }
+        }).catch(() => {
+          messageRoom(`I wanted to propose giving kredits to ${githubUser} for ${url}, but I can't find their contact data. Please add them as a contributor: https://kredits.kosmos.org`);
         });
-      });
-      return promise;
-    }
-
-    function messageRoom(message) {
-      robot.messageRoom(process.env.KREDITS_ROOM, message);
     }
 
     function amountFromIssueLabels(issue) {
@@ -231,55 +148,6 @@ const tv4 = require('tv4');
       return amount;
     }
 
-    function createContributionDocument(contributor, url, description, details) {
-      let contribution = {
-        "@context": "https://schema.kosmos.org",
-        "@type": "Contribution",
-        contributor: {
-          ipfs: contributor.ipfsHash
-        },
-        kind: 'dev',
-        url: url,
-        description: description,
-        details: details
-      };
-
-      if (! tv4.validate(contribution, schemas["contribution"])) {
-        robot.logger.error('[kredits] invalid contribution data: ', util.inspect(contribution));
-        return Promise.reject('invalid contribution data');
-      }
-
-      // robot.logger.debug('[kredits] creating IPFS document for contribution:', contribution.description);
-
-      return ipfs.add(new ipfs.Buffer(JSON.stringify(contribution)))
-        .then(res => {
-          // robot.logger.debug('[kredits] created IPFS document', res[0].hash);
-          return res[0].hash;
-        }).catch(err => robot.logger.error('[kredits] couldn\'t create IPFS document', err));
-    }
-
-    function createProposal(recipient, amount, url, description, details) {
-      robot.logger.debug(`[kredits] Creating proposal to issue ${amount}₭S to ${recipient} for ${url}...`);
-
-      return new Promise((resolve, reject) => {
-        // Get contributor details for GitHub user
-        getContributorByGithubUser(recipient).then(c => {
-          // Create document containing contribution data on IPFS
-          createContributionDocument(c, url, description, details).then(ipfsHash => {
-            // Create proposal on ethereum blockchain
-            kredits.addProposal(c.address, amount, url, ipfsHash, (e, d) => {
-              if (e) { reject(e); return; }
-              robot.logger.debug('[kredits] proposal created:', util.inspect(d));
-              resolve();
-            });
-          });
-        }, () => {
-          messageRoom(`I wanted to propose giving kredits to ${recipient} for ${url}, but I can't find their contact data. Please add them as a contributor: https://kredits.kosmos.org`);
-          resolve();
-        });
-      });
-    }
-
     function handleGitHubIssueClosed(data) {
       return new Promise((resolve/*, reject*/) => {
         // fs.writeFileSync('tmp/github-issue.json', JSON.stringify(data, null, 4));
@@ -301,7 +169,7 @@ const tv4 = require('tv4');
         let description = `${repoName}: ${issue.title}`;
 
         recipients.forEach(recipient => {
-          createProposal(recipient, amount, web_url, description, issue)
+          createProposal(recipient, amount, description, web_url, issue)
             .catch(err => robot.logger.error(err));
         });
 
@@ -339,29 +207,18 @@ const tv4 = require('tv4');
             let repoName = pull_request.base.repo.full_name;
             let description = `${repoName}: ${pull_request.title}`;
 
+            let proposalPromisses = [];
             recipients.forEach(recipient => {
-              createProposal(recipient, amount, web_url, description, pull_request)
-                .catch(err => robot.logger.error(err));
+              proposalPromisses.push(
+                createProposal(recipient, amount, description, web_url, pull_request)
+                  .catch(err => robot.logger.error(err))
+              );
             });
-
-            resolve();
+            return Promise.all(proposalPromisses);
           });
       });
     }
 
-    robot.respond(/(got ETH)|(got gas)\?/i, res => {
-      getBalance().then(balance => {
-        if (balance <= 0) {
-          res.send(`HALP, I\'m totally broke! Not a single wei in my pocket.`);
-        }
-        else if (balance >= 1e+17) {
-          res.send(`my wallet contains ${web3.fromWei(balance, 'ether')} ETH`);
-        }
-        else {
-          res.send(`I\'m almost broke! Only have ${web3.fromWei(balance, 'ether')} ETH left in my pocket. :(`);
-        }
-      });
-    });
 
     robot.router.post('/incoming/kredits/github/'+process.env.KREDITS_WEBHOOK_TOKEN, (req, res) => {
       let evt = req.header('X-GitHub-Event');
@@ -383,45 +240,22 @@ const tv4 = require('tv4');
     });
 
     function watchContractEvents() {
-      web3.eth.getBlockNumber((err, blockNumber) => {
-        if (err) {
-          robot.logger.error('[kredits] couldn\t get current block number');
-          return false;
-        }
-
+      ethProvider.getBlockNumber().then((blockNumber) => {
         // current block is the last mined one, thus we check from the next
         // mined one onwards to prevent getting previous events
         let nextBlock = blockNumber + 1;
         robot.logger.debug(`[kredits] watching events from block ${nextBlock} onward`);
+        ethProvider.resetEventsBlock(nextBlock);
 
-        kredits.allEvents({fromBlock: nextBlock, toBlock: 'latest'}, (error, data) => {
-          robot.logger.debug('[kredits] received contract event', data.event);
-          if (data.blockNumber < nextBlock) {
-            // I don't know why, but the filter doesn't work as intended
-            robot.logger.debug('[kredits] dismissing old event from block', data.blockNumber);
-            return false;
-          }
-          switch (data.event) {
-            case 'ProposalCreated':
-              handleProposalCreated(data);
-              break;
-            // case 'ProposalExecuted':
-            //   handleProposalExecuted(data);
-            //   break;
-            // case 'ProposalVoted':
-            //   handleProposalVoted(data);
-            //   break;
-            // case 'Transfer':
-            //   handleTransfer(data);
-            //   break;
-          }
-        });
+        Operator.on('ProposalCreated', handleProposalCreated);
       });
     }
 
-    function handleProposalCreated(data) {
-      getContributorByAddress(data.args.recipient).then((contributor) => {
-        messageRoom(`Let's give ${contributor.name} some kredits for ${data.args.url}: https://kredits.kosmos.org`);
+    function handleProposalCreated(proposalId, creatorAccount, contributorId, amount) {
+      Contributor.getById(contributorId).then((contributor) => {
+        Operator.getBy(proposalId).then((proposal) => {
+          messageRoom(`Let's give ${contributor.name} some kredits for ${proposal.url} (${proposal.description}): https://kredits.kosmos.org`);
+        });
       });
     }
 
