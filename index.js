@@ -34,7 +34,7 @@ module.exports = async function(robot) {
   try {
     wallet = await ethers.Wallet.fromEncryptedWallet(walletJson, process.env.KREDITS_WALLET_PASSWORD);
   } catch(error) {
-    console.log('could not load wallet', error);
+    console.log('[hubot-kredits] Could not load wallet:', error);
     process.exit(1);
   }
 
@@ -46,7 +46,7 @@ module.exports = async function(robot) {
   try {
     kredits = await Kredits.setup(ethProvider, wallet, ipfsConfig);
   } catch(error) {
-    console.log('could not setup kredits', error);
+    console.log('[hubot-kredits] Could not setup kredits:', error);
     process.exit(1);
   }
   const Contributor = kredits.Contributor;
@@ -123,7 +123,7 @@ module.exports = async function(robot) {
           robot.logger.debug('[kredits] proposal created:', util.inspect(result));
         });
       }).catch((error) => {
-        console.log(error);
+        console.log([hubot-kredits] Error:, error);
         messageRoom(`I wanted to propose giving kredits to ${githubUser} for ${url}, but I can't find their contact data. Please add them as a contributor: https://kredits.kosmos.org`);
       });
   }
@@ -159,7 +159,7 @@ module.exports = async function(robot) {
 
     let amount = amountFromIssueLabels(issue);
     if (amount === 0) {
-      console.log('Proposal amount from issue label is zero; ignoring');
+      console.log('[hubot-kredits] Proposal amount from issue label is zero; ignoring');
       return Promise.resolve();
     }
 
@@ -206,7 +206,7 @@ module.exports = async function(robot) {
       .then(issue => {
         let amount = amountFromIssueLabels(issue);
         if (amount === 0) {
-          console.log('Proposal amount from issue label is zero; ignoring');
+          console.log('[hubot-kredits] Proposal amount from issue label is zero; ignoring');
           return;
         }
 
@@ -215,7 +215,7 @@ module.exports = async function(robot) {
 
         let proposalPromisses = [];
         recipients.forEach(recipient => {
-          console.log(`Creating proposal for ${recipient}`);
+          console.debug(`[hubot-kredits] Creating proposal for ${recipient}...`);
           proposalPromisses.push(
             createProposal(recipient, amount, description, web_url, pull_request)
               .catch(err => robot.logger.error(err))
