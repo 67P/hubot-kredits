@@ -77,7 +77,7 @@ module.exports = async function(robot) {
     let description = res.match[3];
     let url = null;
     createProposal(githubUser, amount, description, url).then((result) => {
-      messageRoom('Sounds good! will be listed on http://kredits.kosmos.org in a bit');
+      messageRoom('Sounds good! Will be listed on https://kredits.kosmos.org in a bit...');
     });
   });
 
@@ -90,7 +90,7 @@ module.exports = async function(robot) {
           });
         }
       });
-      messageRoom('http://kredits.kosmos.org');
+      messageRoom('https://kredits.kosmos.org');
     });
   });
 
@@ -260,15 +260,8 @@ module.exports = async function(robot) {
   function handleProposalCreated(proposalId, creatorAccount, contributorId, amount) {
     Contributor.getById(contributorId).then((contributor) => {
       Operator.getById(proposalId).then((proposal) => {
-        let message = `Let's give ${contributor.name} some Kredits for`;
-        if (proposal.url) {
-          message += ` ${proposal.url}`;
-        }
-        if (proposal.description) {
-          message += ` ${proposal.description}`;
-        }
-        message += ' https://kredits.kosmos.org';
-        messageRoom(message);
+        console.debug('Proposal created:', proposal);
+        // messageRoom(`Let's give ${contributor.name} some kredits for ${proposal.url} (${proposal.description}): https://kredits.kosmos.org`);
       });
     });
   }
