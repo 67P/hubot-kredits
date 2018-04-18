@@ -10,10 +10,11 @@
     "kredits-wallet-create": "scripts/create-wallet.js"
   },
   "dependencies": {
+    "ethers": "^3.0.15",
     "kosmos-schemas": "^1.1.2",
-    "kredits-contracts": "2.0.0",
     "node-fetch": "^2.1.1",
-    "prompt": "^1.0.0"
+    "prompt": "^1.0.0",
+    "truffle-kredits": "github:67P/truffle-kredits#library"
   },
   "repository": {
     "type": "git",
