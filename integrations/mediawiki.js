@@ -92,13 +92,13 @@ module.exports = async function(robot, kredits) {
 
     results.pagesCreated = changes.filter(c => c.type === 'new');
     results.pagesChanged = changes.filter(c => c.type === 'edit');
-    results.linesAdded = changes
+    results.charsAdded = changes
       .map(c => { return (c.oldlen < c.newlen) ? (c.newlen - c.oldlen) : 0; })
       .reduce((a, b) => a + b);
 
     // robot.logger.debug(`Created ${results.pagesCreated.length} pages`);
     // robot.logger.debug(`Edited ${results.pagesChanged.length} pages`);
-    // robot.logger.debug(`Added ${results.linesAdded} lines of text\n`);
+    // robot.logger.debug(`Added ${results.charsAdded} lines of text\n`);
     return results;
   }
 
@@ -119,7 +119,14 @@ module.exports = async function(robot, kredits) {
   function calculateAmountForChanges(details) {
     let amount;
 
-    amount = '50';
+    if (details.charsAdded < 280) {
+      // less than a tweet
+      amount = 500;
+    } else if (details.charsAdded < 2000) {
+      amount = 1500;
+    } else {
+      amount = 5000;
+    }
 
     return amount;
   }
@@ -128,7 +135,7 @@ module.exports = async function(robot, kredits) {
     const details = analyzeUserChanges(user, changes);
     const amount = calculateAmountForChanges(changes);
 
-    let desc = `Added ${details.linesAdded} lines of text.`;
+    let desc = `Added ${details.charsAdded} characters of text.`;
     if (details.pagesChanged.length > 0) {
       desc = `Edited ${pageTitlesFromChanges(details.pagesChanged)}. ${desc}`;
     }
