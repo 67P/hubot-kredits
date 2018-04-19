@@ -5,6 +5,11 @@ module.exports = async function(robot, kredits) {
 
   robot.logger.debug('[hubot-kredits] Loading GitHub integration...');
 
+  let repoBlackList = [];
+  if (process.env.KREDITS_GITHUB_REPO_BLACKLIST) {
+    repoBlackList = process.env.KREDITS_GITHUB_REPO_BLACKLIST.split(',');
+    robot.logger.debug('[hubot-kredits] Ignoring GitHub actions from ', util.inspect(repoBlackList));
+  }
 
   const Contributor = kredits.Contributor;
   const Operator = kredits.Operator;
@@ -15,7 +20,7 @@ module.exports = async function(robot, kredits) {
         return c.github_username === username;
       });
       if (!contrib) {
-        throw new Error(`No contributor found for ${username}`);A
+        throw new Error(`No contributor found for ${username}`);
       } else {
         return contrib;
       }
@@ -73,8 +78,14 @@ module.exports = async function(robot, kredits) {
     let web_url      = issue.html_url;
 
     let amount = amountFromIssueLabels(issue);
+    let repoName = issue.repository_url.match(/.*\/(.+\/.+)$/)[1];
+    let description = `${repoName}: ${issue.title}`;
+
     if (amount === 0) {
       robot.logger.info('[hubot-kredits] Proposal amount from issue label is zero; ignoring');
+      return Promise.resolve();
+    } else if (repoBlackList.includes(repoName)) {
+      robot.logger.debug(`[hubot-kredits] ${repoName} is on black list; ignoring`);
       return Promise.resolve();
     }
 
@@ -83,9 +94,6 @@ module.exports = async function(robot, kredits) {
     } else {
       recipients = [issue.user.login];
     }
-
-    let repoName = issue.repository_url.match(/.*\/(.+\/.+)$/)[1];
-    let description = `${repoName}: ${issue.title}`;
 
     let proposalPromises = [];
     recipients.forEach(recipient => {
@@ -120,13 +128,17 @@ module.exports = async function(robot, kredits) {
       })
       .then(issue => {
         let amount = amountFromIssueLabels(issue);
-        if (amount === 0) {
-          robot.logger.info('[hubot-kredits] Proposal amount from issue label is zero; ignoring');
-          return;
-        }
-
         let repoName = pull_request.base.repo.full_name;
         let description = `${repoName}: ${pull_request.title}`;
+
+        if (amount === 0) {
+          robot.logger.info('[hubot-kredits] Proposal amount from issue label is zero; ignoring');
+          return Promise.resolve();
+        } else if (repoBlackList.includes(repoName)) {
+          robot.logger.debug(`[hubot-kredits] ${repoName} is on black list; ignoring`);
+          return Promise.resolve();
+        }
+
         let proposalPromises = [];
         recipients.forEach(recipient => {
           console.debug(`[hubot-kredits] Creating proposal for ${recipient}...`);
