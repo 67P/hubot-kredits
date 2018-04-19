@@ -145,6 +145,6 @@ module.exports = async function(robot) {
   // Integrations
   //
 
-  require('integrations/github')(robot, kredits);
+  require('./integrations/github')(robot, kredits);
 
 };
