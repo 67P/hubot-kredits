@@ -87,15 +87,15 @@ module.exports = async function(robot, kredits) {
     let repoName = issue.repository_url.match(/.*\/(.+\/.+)$/)[1];
     let description = `${repoName}: ${issue.title}`;
 
-    let proposalPromisses = [];
+    let proposalPromises = [];
     recipients.forEach(recipient => {
-      proposalPromisses.push(
+      proposalPromises.push(
         createProposal(recipient, amount, description, web_url, issue)
           .catch(err => robot.logger.error(err))
       );
     });
 
-    return Promise.all(proposalPromisses);
+    return Promise.all(proposalPromises);
   }
 
   function handleGitHubPullRequestClosed(data) {
@@ -127,16 +127,16 @@ module.exports = async function(robot, kredits) {
 
         let repoName = pull_request.base.repo.full_name;
         let description = `${repoName}: ${pull_request.title}`;
-
-        let proposalPromisses = [];
+        let proposalPromises = [];
         recipients.forEach(recipient => {
           console.debug(`[hubot-kredits] Creating proposal for ${recipient}...`);
-          proposalPromisses.push(
+          proposalPromises.push(
             createProposal(recipient, amount, description, web_url, pull_request)
               .catch(err => robot.logger.error(err))
           );
         });
-        return Promise.all(proposalPromisses);
+
+        return Promise.all(proposalPromises);
       });
   }
 
