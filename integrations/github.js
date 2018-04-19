@@ -29,7 +29,7 @@ module.exports = async function(robot, kredits) {
           robot.logger.debug('[kredits] proposal created:', util.inspect(result));
         });
       }).catch((error) => {
-        console.log([hubot-kredits] Error:, error);
+        robot.logger.info(`[hubot-kredits] Error:`, error);
         messageRoom(`I wanted to propose giving kredits to ${githubUser} for ${url}, but I can't find their contact data. Please add them as a contributor: https://kredits.kosmos.org`);
       });
   }
@@ -65,7 +65,7 @@ module.exports = async function(robot, kredits) {
 
     let amount = amountFromIssueLabels(issue);
     if (amount === 0) {
-      console.log('[hubot-kredits] Proposal amount from issue label is zero; ignoring');
+      robot.logger.info('[hubot-kredits] Proposal amount from issue label is zero; ignoring');
       return Promise.resolve();
     }
 
@@ -112,7 +112,7 @@ module.exports = async function(robot, kredits) {
       .then(issue => {
         let amount = amountFromIssueLabels(issue);
         if (amount === 0) {
-          console.log('[hubot-kredits] Proposal amount from issue label is zero; ignoring');
+          robot.logger.info('[hubot-kredits] Proposal amount from issue label is zero; ignoring');
           return;
         }
 

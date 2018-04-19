@@ -44,7 +44,7 @@ module.exports = async function(robot) {
   try {
     wallet = await ethers.Wallet.fromEncryptedWallet(walletJson, process.env.KREDITS_WALLET_PASSWORD);
   } catch(error) {
-    console.log('[hubot-kredits] Could not load wallet:', error);
+    robot.logger.warn('[hubot-kredits] Could not load wallet:', error);
     process.exit(1);
   }
 
@@ -64,7 +64,7 @@ module.exports = async function(robot) {
   try {
     kredits = await Kredits.setup(ethProvider, wallet, ipfsConfig);
   } catch(error) {
-    console.log('[hubot-kredits] Could not set up kredits:', error);
+    robot.logger.warn('[hubot-kredits] Could not set up kredits:', error);
     process.exit(1);
   }
   const Contributor = kredits.Contributor;
