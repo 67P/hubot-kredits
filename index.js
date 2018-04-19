@@ -123,7 +123,7 @@ module.exports = async function(robot) {
       // current block is the last mined one, thus we check from the next
       // mined one onwards to prevent getting previous events
       let nextBlock = blockNumber + 1;
-      robot.logger.debug(`[kredits] watching events from block ${nextBlock} onward`);
+      robot.logger.debug(`[hubot-kredits] Watching events from block ${nextBlock} onward`);
       ethProvider.resetEventsBlock(nextBlock);
 
       Operator.on('ProposalCreated', handleProposalCreated);
@@ -133,7 +133,7 @@ module.exports = async function(robot) {
   function handleProposalCreated(proposalId, creatorAccount, contributorId, amount) {
     Contributor.getById(contributorId).then((contributor) => {
       Operator.getById(proposalId).then((proposal) => {
-        console.debug('Proposal created:', proposal);
+        robot.logger.debug(`[hubot-kredits] Proposal created (${proposal.description})`);
         // messageRoom(`Let's give ${contributor.name} some kredits for ${proposal.url} (${proposal.description}): https://kredits.kosmos.org`);
       });
     });

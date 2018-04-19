@@ -3,7 +3,8 @@ const fetch = require('node-fetch');
 
 module.exports = async function(robot, kredits) {
 
-  robot.logger.debug('[hubot-kredits] Loading GitHub integration...')
+  robot.logger.debug('[hubot-kredits] Loading GitHub integration...');
+
 
   const Contributor = kredits.Contributor;
   const Operator = kredits.Operator;
@@ -22,8 +23,9 @@ module.exports = async function(robot, kredits) {
   }
 
   function createProposal(githubUser, amount, description, url, details) {
-    return getContributorByGithubUser(githubUser).then((contributor) => {
-      robot.logger.debug(`[kredits] Creating proposal to issue ${amount}₭S to ${githubUser} for ${url}...`);
+    return getContributorByGithubUser(githubUser).then(contributor => {
+      robot.logger.debug(`[hubot-kredits] Creating proposal to issue ${amount}₭S to ${githubUser} for ${url}...`);
+
       let contributionAttr = {
         contributorId: contributor.id,
         amount: amount,
@@ -33,13 +35,12 @@ module.exports = async function(robot, kredits) {
         details,
         kind: 'dev'
       };
-      return Operator.addProposal(contributionAttr).then((result) => {
-          robot.logger.debug('[kredits] proposal created:', util.inspect(result));
-        });
-      }).catch((error) => {
+
+      return Operator.addProposal(contributionAttr).catch(error => {
         robot.logger.info(`[hubot-kredits] Error:`, error);
-        messageRoom(`I wanted to propose giving kredits to ${githubUser} for ${url}, but I can't find their contact data. Please add them as a contributor: https://kredits.kosmos.org`);
+        messageRoom(`I wanted to propose giving kredits to ${githubUser} for ${url}, but I cannot find their contact data. Please add them as a contributor: https://kredits.kosmos.org`);
       });
+    });
   }
 
   function amountFromIssueLabels(issue) {

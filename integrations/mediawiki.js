@@ -54,7 +54,7 @@ module.exports = async function(robot, kredits) {
   }
 
   function analyzeUserChanges (user, changes) {
-    robot.logger.info(`Analyzing ${changes.length} edits from ${user} ...`);
+    robot.logger.debug(`Analyzing ${changes.length} edits from ${user} ...`);
     const results = {};
 
     results.pagesCreated = changes.filter(c => c.type === 'new');
@@ -63,9 +63,9 @@ module.exports = async function(robot, kredits) {
       .map(c => { return (c.oldlen < c.newlen) ? (c.newlen - c.oldlen) : 0; })
       .reduce((a, b) => a + b);
 
-    robot.logger.info(`Created ${results.pagesCreated.length} pages`);
-    robot.logger.info(`Edited ${results.pagesChanged.length} pages`);
-    robot.logger.info(`Added ${results.linesAdded} lines of text\n`);
+    robot.logger.debug(`Created ${results.pagesCreated.length} pages`);
+    robot.logger.debug(`Edited ${results.pagesChanged.length} pages`);
+    robot.logger.debug(`Added ${results.linesAdded} lines of text\n`);
 
     return results;
   }
