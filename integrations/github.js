@@ -3,6 +3,10 @@ const fetch = require('node-fetch');
 
 module.exports = async function(robot, kredits) {
 
+  function messageRoom(message) {
+    robot.messageRoom(process.env.KREDITS_ROOM, message);
+  }
+
   robot.logger.debug('[hubot-kredits] Loading GitHub integration...');
 
   let repoBlackList = [];
@@ -42,8 +46,8 @@ module.exports = async function(robot, kredits) {
       };
 
       return Operator.addProposal(contributionAttr).catch(error => {
-        robot.logger.info(`[hubot-kredits] Error:`, error);
-        messageRoom(`I wanted to propose giving kredits to ${githubUser} for ${url}, but I cannot find their contact data. Please add them as a contributor: https://kredits.kosmos.org`);
+        robot.logger.error(`[hubot-kredits] Error:`, error);
+        messageRoom(`I wanted to propose giving kredits to GitHub user ${githubUser} for ${url}, but I cannot find their info. Please add them as a contributor: https://kredits.kosmos.org`);
       });
     });
   }
