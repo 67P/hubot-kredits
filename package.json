@@ -13,7 +13,8 @@
     "ethers": "^3.0.15",
     "group-array": "^0.3.3",
     "kosmos-schemas": "^1.1.2",
-    "node-fetch": "^2.1.1",
+    "node-cron": "^1.2.1",
+    "node-fetch": "^1.6.3",
     "prompt": "^1.0.0",
     "truffle-kredits": "github:67P/truffle-kredits#library"
   },
