@@ -147,4 +147,8 @@ module.exports = async function(robot) {
 
   require('./integrations/github')(robot, kredits);
 
+  if (typeof process.env.KREDITS_MEDIAWIKI_URL !== 'undefined') {
+    require('./integrations/mediawiki')(robot, kredits);
+  }
+
 };

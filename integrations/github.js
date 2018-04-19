@@ -1,5 +1,7 @@
 module.exports = async function(robot, kredits) {
 
+  robot.logger.debug('[hubot-kredits] Loading GitHub integration...')
+
   const Contributor = kredits.Contributor;
   const Operator = kredits.Operator;
 
