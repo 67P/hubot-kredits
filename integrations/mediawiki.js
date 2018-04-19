@@ -1,6 +1,7 @@
 const util = require('util');
 const fetch = require('node-fetch');
 const groupArray = require('group-array');
+const cron = require('node-cron');
 
 module.exports = async function(robot, kredits) {
 
@@ -165,9 +166,13 @@ module.exports = async function(robot, kredits) {
     robot.brain.set('kredits:mediawiki:last_processed_at', new Date().toISOString());
   }
 
-  fetchChanges()
-    .then(res => groupChangesByUser(res))
-    .then(res => createProposals(res))
-    .then(() => updateTimestampForNextFetch());
+  function processWikiChangesSinceLastRun () {
+    fetchChanges()
+      .then(res => groupChangesByUser(res))
+      .then(res => createProposals(res))
+      .then(() => updateTimestampForNextFetch());
+  }
+
+  cron.schedule('* 7 * * *', processWikiChangesSinceLastRun);
 
 };
