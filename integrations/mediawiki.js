@@ -65,6 +65,12 @@ module.exports = async function(robot, kredits) {
       'rcprop=ids|title|timestamp|user|sizes|comment|flags'
     ];
 
+    let endTime = robot.brain.get('kredits:mediawiki:last_processed_at');
+    if (endTime) {
+      robot.logger.debug(`[hubot-kredits] Fetching wiki edits since ${endTime}`);
+      params.push(`rcend=${endTime}`);
+    }
+
     const url = `${apiURL}?${params.join('&')}`;
 
     return fetch(url).then(res => {
@@ -83,7 +89,7 @@ module.exports = async function(robot, kredits) {
   }
 
   function groupChangesByUser (changes) {
-    return groupArray(changes, 'user');
+    return Promise.resolve(groupArray(changes, 'user'));
   }
 
   function analyzeUserChanges (user, changes) {
@@ -154,8 +160,14 @@ module.exports = async function(robot, kredits) {
     return createProposal(user, amount, desc, url, details);
   }
 
+  function updateTimestampForNextFetch () {
+    robot.logger.debug(`[hubot-kredits] Set timestamp for wiki changes fetch`);
+    robot.brain.set('kredits:mediawiki:last_processed_at', new Date().toISOString());
+  }
+
   fetchChanges()
     .then(res => groupChangesByUser(res))
-    .then(res => createProposals(res));
+    .then(res => createProposals(res))
+    .then(() => updateTimestampForNextFetch());
 
 };
