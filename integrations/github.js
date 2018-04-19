@@ -1,5 +1,8 @@
 module.exports = async function(robot, kredits) {
 
+  const Contributor = kredits.Contributor;
+  const Operator = kredits.Operator;
+
   function getContributorByGithubUser(username) {
     return Contributor.all().then(contributors => {
       let contrib = contributors.find(c => {
