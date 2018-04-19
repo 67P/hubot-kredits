@@ -73,7 +73,9 @@ module.exports = async function(robot) {
   });
 
   robot.respond(/propose (\d*)\s?\S*\s?to (\S+)(?:\sfor (.*))?$/i, res => {
-    let [_, amount, githubUser, description] = res.match;
+    let amount = res.match[1];
+    let githubUser = res.match[2];
+    let description = res.match[3];
     let url = null;
     createProposal(githubUser, amount, description, url).then((result) => {
       messageRoom('Sounds good! Will be listed on https://kredits.kosmos.org in a bit...');
@@ -85,7 +87,7 @@ module.exports = async function(robot) {
       proposals.forEach((proposal) => {
         if (!proposal.executed) {
           Contributor.getById(proposal.contributorId).then((contributor) => {
-            messageRoom(`* ${proposal.amount} kredits to ${contributor.name} ${proposal.description ? 'for ' + proposal.description : ''}`);
+            messageRoom(`* ${proposal.amount} kredits to ${contributor.name} for ${proposal.description}`);
           });
         }
       });
@@ -130,8 +132,24 @@ module.exports = async function(robot) {
   function amountFromIssueLabels(issue) {
     let kreditsLabel = issue.labels.map(l => l.name)
                             .filter(n => n.match(/^kredits/))[0];
+    // No label, no kredits
+    if (typeof kreditsLabel === 'undefined') { return 0; }
 
-    return { 'kredits-1': 50, 'kredits-2': 150, 'kredits-3': 500 }[kreditsLabel] || 0
+    // TODO move to config maybe?
+    let amount;
+    switch(kreditsLabel) {
+      case 'kredits-1':
+        amount = 50;
+        break;
+      case 'kredits-2':
+        amount = 150;
+        break;
+      case 'kredits-3':
+        amount = 500;
+        break;
+    }
+
+    return amount;
   }
 
   function handleGitHubIssueClosed(data) {
