@@ -73,9 +73,7 @@ module.exports = async function(robot) {
   });
 
   robot.respond(/propose (\d*)\s?\S*\s?to (\S+)(?:\sfor (.*))?$/i, res => {
-    let amount = res.match[1];
-    let githubUser = res.match[2];
-    let description = res.match[3];
+    let [_, amount, githubUser, description] = res.match;
     let url = null;
     createProposal(githubUser, amount, description, url).then((result) => {
       messageRoom('Sounds good! Will be listed on https://kredits.kosmos.org in a bit...');
