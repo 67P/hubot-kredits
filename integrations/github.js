@@ -62,13 +62,13 @@ module.exports = async function(robot, kredits) {
     let amount;
     switch(kreditsLabel) {
       case 'kredits-1':
-        amount = 50;
+        amount = 500;
         break;
       case 'kredits-2':
-        amount = 150;
+        amount = 1500;
         break;
       case 'kredits-3':
-        amount = 500;
+        amount = 5000;
         break;
     }
 
