@@ -1,0 +1,26 @@
+# Kredits Hubot integration
+
+These are hubot skills to interact with the Kredits contracts.  
+It hosts integrations to different services. 
+
+## Supported Services
+
+### GitHub
+
+The GitHub integration allows hubot to create proposals from a GitHub webhook notification.  
+Supported are notifications about closed pull requests and issues. 
+
+The proposal is created with the following attributes: 
+
+* recipient: assignees or the user of the issue
+* amount: determined by the label of the issue. 
+
+
+### Mediawiki
+
+
+## Installation
+
+See the documentation of each integration of possible configuration options. 
+The integrations are configured with environment variables.
+
