@@ -11,18 +11,6 @@ module.exports = async function(robot, kredits) {
 
   const apiURL =  process.env.KREDITS_MEDIAWIKI_URL + 'api.php';
 
-  const robot = {
-    data: {},
-    brain: {
-      set(key, value) {
-        this.data[key] = value;
-      },
-      get(key) {
-        return this.data[key];
-      }
-    }
-  };
-
   function fetchChanges () {
     const params = [
       'action=query',
