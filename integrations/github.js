@@ -1,3 +1,6 @@
+const util = require('util');
+const fetch = require('node-fetch');
+
 module.exports = async function(robot, kredits) {
 
   robot.logger.debug('[hubot-kredits] Loading GitHub integration...')
