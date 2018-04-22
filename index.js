@@ -1,18 +1,3 @@
-// Description:
-//   Kosmos Kredits chat integration
-//
-// Configuration:
-//   KREDITS_WEBHOOK_TOKEN: A string for building your secret webhook URL
-//   KREDITS_ROOM: Kredit Proposals are posted to this chatroom
-//   KREDITS_WALLET_PATH: Path to a etherum wallet JSON file
-//   KREDITS_WALLET_PASSWORD: Wallet password
-//   KREDITS_PROVIDER_URL: Ethereum JSON-RPC URL (default 'http://localhost:7545')
-//   KREDITS_NETWORK_ID: The ethereum network ID to use (default 100 = local)
-//   IPFS_API_HOST: Host/domain (default 'localhost')
-//   IPFS_API_PORT: Port number (default '5001')
-//   IPFS_API_PROTOCOL: Protocol, e.g. 'http' or 'https' (default 'http')
-//
-
 const fs = require('fs');
 const util = require('util');
 const fetch = require('node-fetch');
