@@ -7,7 +7,7 @@
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "bin": {
-    "kredits-wallet-create": "scripts/create-wallet.js"
+    "create-wallet": "scripts/create-wallet.js"
   },
   "dependencies": {
     "ethers": "^3.0.15",
