@@ -1,9 +1,10 @@
 # hubot-kredits
 
-This repository provides scripts for integrating Kosmos Kredits in
-[Hubot](http://hubot.github.com/) chatbots. The bot will watch for
-project-related things happening on the Internet and automatically create
-proposals for issuing Kredits for project contributions.
+This repository provides scripts for integrating [Kosmos
+Kredits](https://wiki.kosmos.org/Kredits) in [Hubot](http://hubot.github.com/)
+chatbots. The bot will watch for project-related things happening on the
+Internet and automatically create proposals for issuing kredits for project
+contributions.
 
 ## Configuration
 
@@ -25,7 +26,7 @@ As usual in Hubot, you can add all config as environment variables.
 The GitHub integration will watch for closed issues and merged pull requests,
 which carry a kredits label: `kredits-1`, `kredits-2`, `kredits-3` for small,
 medium and large contributions. If there are multiple people assigned, it will
-issue propsals for all of them.
+issue proposals for all of them.
 
 #### Setup
 
