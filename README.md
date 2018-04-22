@@ -6,6 +6,11 @@ chatbots. The bot will watch for project-related things happening on the
 Internet and automatically create proposals for issuing kredits for project
 contributions.
 
+## Setup
+
+You will need an Ethereum wallet for your bot, so it can interact with the
+Ethereum smart contracts. `npm run create-wallet` will do the job for you.
+
 ## Configuration
 
 As usual in Hubot, you can add all config as environment variables.
@@ -14,10 +19,10 @@ As usual in Hubot, you can add all config as environment variables.
 | --- | --- |
 | `KREDITS_WEBHOOK_TOKEN` | A string for building your secret webhook URLs |
 | `KREDITS_ROOM` | The bot will talk to you in this room |
-| `KREDITS_WALLET_PATH` | Path to an Etherum wallet JSON file |
+| `KREDITS_WALLET_PATH` | Path to an Etherum wallet JSON file (default: `./wallet.json`) |
 | `KREDITS_WALLET_PASSWORD` | Wallet password |
-| `KREDITS_PROVIDER_URL` | Ethereum JSON-RPC URL (default `http://localhost:7545`) |
-| `KREDITS_NETWORK_ID` | The ethereum network ID to use (default 100 = local) |
+| `KREDITS_PROVIDER_URL` | Ethereum JSON-RPC URL (default: `http://localhost:7545`) |
+| `KREDITS_NETWORK_ID` | The ethereum network ID to use (default: 100 = local) |
 
 ## Integrations
 
