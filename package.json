@@ -23,7 +23,9 @@
     "url": "git+https://github.com/67P/hubot-kredits.git"
   },
   "keywords": [
-    "kosmos"
+    "kosmos",
+    "kredits",
+    "hubot-scripts"
   ],
   "author": "Kosmos Developers <mail@kosmos.org>",
   "contributors": [
