@@ -1,4 +1,6 @@
-# hubot-kredits
+[![npm](https://img.shields.io/npm/v/hubot-kredits.svg)](https://www.npmjs.com/package/hubot-kredits)
+
+# Hubot Kredits
 
 This repository provides scripts for integrating [Kosmos
 Kredits](https://wiki.kosmos.org/Kredits) in [Hubot](http://hubot.github.com/)
