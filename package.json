@@ -16,7 +16,7 @@
     "node-cron": "^1.2.1",
     "node-fetch": "^1.6.3",
     "prompt": "^1.0.0",
-    "truffle-kredits": "github:67P/truffle-kredits"
+    "kredits-contracts": "3.x"
   },
   "repository": {
     "type": "git",
