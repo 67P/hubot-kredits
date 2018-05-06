@@ -121,7 +121,7 @@ module.exports = async function(robot, kredits) {
   }
 
   function pageTitlesFromChanges(changes) {
-    return changes.map(c => `"${c.title}"`).join(', ');
+    return [...new Set(changes.map(c => `"${c.title}"`))].join(', ');
   }
 
   function calculateAmountForChanges(details) {
