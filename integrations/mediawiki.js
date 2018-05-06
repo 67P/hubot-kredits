@@ -18,18 +18,13 @@ module.exports = async function(robot, kredits) {
   const apiURL =  wikiURL + 'api.php';
 
   function getContributorByWikiUser(username) {
-    return Contributor.all().then(contributors => {
-      let contrib = contributors.find(c => {
-        if (typeof c.accounts !== 'object') { return false; }
-        return c.accounts.find(a => {
-          a.url === `${process.env.KREDITS_MEDIAWIKI_URL}User:${username}`;
-        });
-      });
-      if (!contrib) {
-        throw new Error();
-      } else {
-        return contrib;
-      }
+    let account = {
+      site: url.parse(process.env.KREDITS_MEDIAWIKI_URL).hostname,
+      username: username
+    }
+    return Contributor.findByAccount(account).then(contributor => {
+      robot.logger.debug('CONTRIBUTOR: ', contributor)
+      if (contributor) { return contributor; } else { throw new Error(); }
     });
   }
 
