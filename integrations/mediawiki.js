@@ -150,6 +150,7 @@ module.exports = async function(robot, kredits) {
     if (details.pagesCreated.length > 0) {
       desc = `Created ${pageTitlesFromChanges(details.pagesCreated)}. ${desc}`;
     }
+    desc = `Wiki contributions: ${desc}`;
 
     let url;
     if (changes.length > 1) {
