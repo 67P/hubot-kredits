@@ -14,7 +14,8 @@ module.exports = async function(robot, kredits) {
   const Contributor = kredits.Contributor;
   const Operator = kredits.Operator;
 
-  const apiURL =  process.env.KREDITS_MEDIAWIKI_URL + 'api.php';
+  const wikiURL = process.env.KREDITS_MEDIAWIKI_URL;
+  const apiURL =  wikiURL + 'api.php';
 
   function getContributorByWikiUser(username) {
     return Contributor.all().then(contributors => {
@@ -152,10 +153,10 @@ module.exports = async function(robot, kredits) {
 
     let url;
     if (changes.length > 1) {
-      url = `https://wiki.kosmos.org/Special:Contributions/${user}?hideMinor=1`;
+      url = `${wikiURL}Special:Contributions/${user}?hideMinor=1`;
     } else {
       rc = changes[0];
-      url = `https://wiki.kosmos.org/index.php?title=${rc.title}&diff=${rc.revid}&oldid=${rc.old_revid}`;
+      url = `${wikiURL}index.php?title=${rc.title}&diff=${rc.revid}&oldid=${rc.old_revid}`;
     }
 
     return createProposal(user, amount, desc, url, details);
