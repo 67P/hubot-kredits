@@ -137,7 +137,7 @@ module.exports = async function(robot, kredits) {
 
   function createProposalForUserChanges (user, changes) {
     const details = analyzeUserChanges(user, changes);
-    const amount = calculateAmountForChanges(changes);
+    const amount = calculateAmountForChanges(details);
 
     let desc = `Added ${details.charsAdded} characters of text.`;
     if (details.pagesChanged.length > 0) {
