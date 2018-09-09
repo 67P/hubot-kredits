@@ -171,6 +171,6 @@ module.exports = async function(robot, kredits) {
       .then(() => updateTimestampForNextFetch());
   }
 
-  cron.schedule('* 7 * * *', processWikiChangesSinceLastRun);
+  cron.schedule('0 7 * * *', processWikiChangesSinceLastRun);
 
 };
