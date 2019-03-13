@@ -145,7 +145,7 @@ module.exports = async function(robot, kredits) {
 
         let proposalPromises = [];
         recipients.forEach(recipient => {
-          console.debug(`[hubot-kredits] Creating proposal for ${recipient}...`);
+          robot.logger.debug(`[hubot-kredits] Creating proposal for ${recipient}...`);
           proposalPromises.push(
             createProposal(recipient, amount, description, web_url, pull_request)
               .catch(err => robot.logger.error(err))
