@@ -13,8 +13,8 @@
     "ethers": "^4.0.27",
     "group-array": "^0.3.3",
     "kosmos-schemas": "^1.1.2",
-    "node-cron": "^1.2.1",
-    "node-fetch": "^1.6.3",
+    "node-cron": "^2.0.3",
+    "node-fetch": "^2.3.0",
     "prompt": "^1.0.0",
     "kredits-contracts": "3.x"
   },
