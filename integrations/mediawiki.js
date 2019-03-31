@@ -44,7 +44,7 @@ module.exports = async function(robot, kredits) {
         kind: 'docs'
       };
 
-      return Operator.addProposal(contribution).catch(error => {
+      return Proposal.addProposal(contribution).catch(error => {
         robot.logger.error(`[hubot-kredits] Adding proposal failed:`, error);
       });
     }).catch(() => {
