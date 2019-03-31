@@ -27,7 +27,7 @@ module.exports = async function(robot) {
 
   let wallet;
   try {
-    wallet = await ethers.Wallet.fromEncryptedWallet(walletJson, process.env.KREDITS_WALLET_PASSWORD);
+    wallet = await ethers.Wallet.fromEncryptedJson(walletJson, process.env.KREDITS_WALLET_PASSWORD);
   } catch(error) {
     robot.logger.warn('[hubot-kredits] Could not load wallet:', error);
     process.exit(1);
@@ -37,7 +37,7 @@ module.exports = async function(robot) {
   // Ethereum provider/node setup
   //
 
-  const ethProvider = new ethers.providers.JsonRpcProvider(providerUrl, {chainId: networkId});
+  const ethProvider = new ethers.providers.JsonRpcProvider(providerUrl);
   ethProvider.signer = wallet;
   wallet.provider = ethProvider;
 
@@ -47,13 +47,14 @@ module.exports = async function(robot) {
 
   let kredits;
   try {
-    kredits = await Kredits.setup(ethProvider, wallet, ipfsConfig);
+    kredits = await new Kredits(ethProvider, wallet, ipfsConfig).init();
   } catch(error) {
     robot.logger.warn('[hubot-kredits] Could not set up kredits:', error);
     process.exit(1);
   }
   const Contributor = kredits.Contributor;
-  const Operator = kredits.Operator;
+  const Proposal = kredits.Proposal;
+  const Contribution = kredits.Contribution;
 
   robot.logger.info('[hubot-kredits] Wallet address: ' + wallet.address);
 
@@ -87,7 +88,7 @@ module.exports = async function(robot) {
   });
 
   robot.respond(/list open proposals/i, res => {
-    Operator.all().then((proposals) => {
+    Proposal.all().then((proposals) => {
       proposals.forEach((proposal) => {
         if (!proposal.executed) {
           Contributor.getById(proposal.contributorId).then((contributor) => {
@@ -111,13 +112,13 @@ module.exports = async function(robot) {
       robot.logger.debug(`[hubot-kredits] Watching events from block ${nextBlock} onward`);
       ethProvider.resetEventsBlock(nextBlock);
 
-      Operator.on('ProposalCreated', handleProposalCreated);
+      Proposal.on('ProposalCreated', handleProposalCreated);
     });
   }
 
   function handleProposalCreated(proposalId, creatorAccount, contributorId, amount) {
     Contributor.getById(contributorId).then((contributor) => {
-      Operator.getById(proposalId).then((proposal) => {
+      Proposal.getById(proposalId).then((proposal) => {
         robot.logger.debug(`[hubot-kredits] Proposal created (${proposal.description})`);
         // messageRoom(`Let's give ${contributor.name} some kredits for ${proposal.url} (${proposal.description}): https://kredits.kosmos.org`);
       });
