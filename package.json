@@ -10,13 +10,14 @@
     "create-wallet": "scripts/create-wallet.js"
   },
   "dependencies": {
+    "eth-provider": "^0.2.2",
     "ethers": "^4.0.27",
     "group-array": "^0.3.3",
     "kosmos-schemas": "^1.1.2",
+    "kredits-contracts": "4.x",
     "node-cron": "^2.0.3",
     "node-fetch": "^2.3.0",
-    "prompt": "^1.0.0",
-    "kredits-contracts": "3.x"
+    "prompt": "^1.0.0"
   },
   "repository": {
     "type": "git",

@@ -6,7 +6,7 @@ const Kredits = require('kredits-contracts');
 
 const walletPath  = process.env.KREDITS_WALLET_PATH || './wallet.json';
 const walletJson  = fs.readFileSync(walletPath);
-const providerUrl = process.env.KREDITS_PROVIDER_URL || 'http://localhost:7545';
+const providerUrl = process.env.KREDITS_PROVIDER_URL;
 const networkId = parseInt(process.env.KREDITS_NETWORK_ID || 100);
 
 const ipfsConfig = {
@@ -37,9 +37,13 @@ module.exports = async function(robot) {
   // Ethereum provider/node setup
   //
 
-  const ethProvider = new ethers.providers.JsonRpcProvider(providerUrl);
-  ethProvider.signer = wallet;
-  wallet.provider = ethProvider;
+  let ethProvider;
+  if (providerUrl) {
+    ethProvider = new ethers.providers.JsonRpcProvider(providerUrl);
+  } else {
+    ethProvider = new ethers.getDefaultProvider('rinkeby');
+  }
+  const signer = wallet.connect(ethProvider);
 
   //
   // Kredits contracts setup
@@ -47,7 +51,11 @@ module.exports = async function(robot) {
 
   let kredits;
   try {
-    kredits = await new Kredits(ethProvider, wallet, ipfsConfig).init();
+    kredits = await new Kredits(signer.provider, signer, {
+      // TODO support local devchain custom address
+      apm: 'open.aragonpm.eth',
+      ipfsConfig
+    }).init();
   } catch(error) {
     robot.logger.warning('[hubot-kredits] Could not set up kredits:', error);
     process.exit(1);
@@ -75,7 +83,7 @@ module.exports = async function(robot) {
 
   robot.respond(/got ETH\??/i, res => {
     ethProvider.getBalance(wallet.address).then((balance) => {
-      res.send(`my wallet contains ${ethers.utils.formatEther(balance)} ETH`);
+      res.send(`My wallet contains ${ethers.utils.formatEther(balance)} ETH`);
     });
   });
 
