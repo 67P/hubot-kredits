@@ -121,6 +121,7 @@ module.exports = async function(robot) {
       ethProvider.resetEventsBlock(nextBlock);
 
       Proposal.on('ProposalCreated', handleProposalCreated);
+      Contribution.on('ContributionAdded', handleContributionAdded);
     });
   }
 
@@ -129,6 +130,14 @@ module.exports = async function(robot) {
       Proposal.getById(proposalId).then((proposal) => {
         robot.logger.debug(`[hubot-kredits] Proposal created (${proposal.description})`);
         // messageRoom(`Let's give ${contributor.name} some kredits for ${proposal.url} (${proposal.description}): https://kredits.kosmos.org`);
+      });
+    });
+  }
+
+  function handleContributionAdded(contributionId, contributorId, amount) {
+    Contributor.getById(contributorId).then((contributor) => {
+      Contribution.getById(contributionId).then((contribution) => {
+        robot.logger.debug(`[hubot-kredits] Contribution #${contribution.id} added (${contribution.description})`);
       });
     });
   }

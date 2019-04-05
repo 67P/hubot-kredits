@@ -16,7 +16,6 @@ module.exports = async function(robot, kredits) {
   }
 
   const Contributor = kredits.Contributor;
-  const Proposal = kredits.Proposal;
   const Contribution = kredits.Contribution;
 
   function getContributorByGithubUser(username) {
@@ -32,9 +31,9 @@ module.exports = async function(robot, kredits) {
     });
   }
 
-  function createProposal(githubUser, amount, description, url, details) {
+  function createContribution(githubUser, amount, description, url, details) {
     return getContributorByGithubUser(githubUser).then(contributor => {
-      robot.logger.debug(`[hubot-kredits] Creating proposal to issue ${amount}₭S to ${githubUser} for ${url}...`);
+      robot.logger.debug(`[hubot-kredits] Creating contribution token for ${amount}₭S to ${githubUser} for ${url}...`);
 
       let contributionAttr = {
         contributorId: contributor.id,
@@ -46,7 +45,7 @@ module.exports = async function(robot, kredits) {
         kind: 'dev'
       };
 
-      return Proposal.addProposal(contributionAttr).catch(error => {
+      return Contribution.addContribution(contributionAttr).catch(error => {
         robot.logger.error(`[hubot-kredits] Error:`, error);
         messageRoom(`I wanted to propose giving kredits to GitHub user ${githubUser} for ${url}, but I cannot find their info. Please add them as a contributor: https://kredits.kosmos.org`);
       });
@@ -87,7 +86,7 @@ module.exports = async function(robot, kredits) {
     let description = `${repoName}: ${issue.title}`;
 
     if (amount === 0) {
-      robot.logger.info('[hubot-kredits] Proposal amount from issue label is zero; ignoring');
+      robot.logger.info('[hubot-kredits] Kredits amount from issue label is zero; ignoring');
       return Promise.resolve();
     } else if (repoBlackList.includes(repoName)) {
       robot.logger.debug(`[hubot-kredits] ${repoName} is on black list; ignoring`);
@@ -100,15 +99,15 @@ module.exports = async function(robot, kredits) {
       recipients = [issue.user.login];
     }
 
-    let proposalPromises = [];
+    let contributionPromises = [];
     recipients.forEach(recipient => {
-      proposalPromises.push(
-        createProposal(recipient, amount, description, web_url, issue)
+      contributionPromises.push(
+        createContribution(recipient, amount, description, web_url, issue)
           .catch(err => robot.logger.error(err))
       );
     });
 
-    return Promise.all(proposalPromises);
+    return Promise.all(contributionPromises);
   }
 
   function handleGitHubPullRequestClosed(data) {
@@ -137,23 +136,23 @@ module.exports = async function(robot, kredits) {
         let description = `${repoName}: ${pull_request.title}`;
 
         if (amount === 0) {
-          robot.logger.info('[hubot-kredits] Proposal amount from issue label is zero; ignoring');
+          robot.logger.info('[hubot-kredits] Kredits amount from issue label is zero; ignoring');
           return Promise.resolve();
         } else if (repoBlackList.includes(repoName)) {
           robot.logger.debug(`[hubot-kredits] ${repoName} is on black list; ignoring`);
           return Promise.resolve();
         }
 
-        let proposalPromises = [];
+        let contributionPromises = [];
         recipients.forEach(recipient => {
-          robot.logger.debug(`[hubot-kredits] Creating proposal for ${recipient}...`);
-          proposalPromises.push(
-            createProposal(recipient, amount, description, web_url, pull_request)
+          robot.logger.debug(`[hubot-kredits] Creating contribution token for ${recipient}...`);
+          contributionPromises.push(
+            createContribution(recipient, amount, description, web_url, pull_request)
               .catch(err => robot.logger.error(err))
           );
         });
 
-        return Promise.all(proposalPromises);
+        return Promise.all(contributionPromises);
       });
   }
 

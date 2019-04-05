@@ -5,7 +5,7 @@
 This repository provides scripts for integrating [Kosmos
 Kredits](https://wiki.kosmos.org/Kredits) in [Hubot](http://hubot.github.com/)
 chatbots. The bot will watch for project-related things happening on the
-Internet and automatically create proposals for issuing kredits for project
+Internet and automatically create ERC721 tokens for issuing kredits for project
 contributions.
 
 ## Setup
@@ -33,7 +33,7 @@ As usual in Hubot, you can add all config as environment variables.
 The GitHub integration will watch for closed issues and merged pull requests,
 which carry a kredits label: `kredits-1`, `kredits-2`, `kredits-3` for small,
 medium and large contributions. If there are multiple people assigned, it will
-issue proposals for all of them.
+issue contribution tokens for all of them.
 
 #### Setup
 
@@ -50,7 +50,7 @@ Point a GitHub organization webhook to the following URL:
 ### MediaWiki
 
 The MediaWiki integration will periodically check for wiki page creations and
-edits. It will create kredits proposals based on amount of text added.
+edits. It will create kredits contribution tokens based on amount of text added.
 
 #### Setup
 

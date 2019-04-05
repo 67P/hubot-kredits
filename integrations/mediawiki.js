@@ -13,7 +13,6 @@ module.exports = async function(robot, kredits) {
   robot.logger.debug('[hubot-kredits] Loading MediaWiki integration...')
 
   const Contributor = kredits.Contributor;
-  const Proposal = kredits.Proposal;
   const Contribution = kredits.Contribution;
 
   const wikiURL = process.env.KREDITS_MEDIAWIKI_URL;
@@ -30,9 +29,9 @@ module.exports = async function(robot, kredits) {
     });
   }
 
-  function createProposal(username, amount, description, url, details={}) {
+  function createContribution(username, amount, description, url, details={}) {
     return getContributorByWikiUser(username).then(contributor => {
-      robot.logger.debug(`[hubot-kredits] Creating proposal to issue ${amount}₭S to ${contributor.name} for ${url}...`);
+      robot.logger.debug(`[hubot-kredits] Creating contribution token for ${amount}₭S to ${contributor.name} for ${url}...`);
 
       let contribution = {
         contributorId: contributor.id,
@@ -44,8 +43,8 @@ module.exports = async function(robot, kredits) {
         kind: 'docs'
       };
 
-      return Proposal.addProposal(contribution).catch(error => {
-        robot.logger.error(`[hubot-kredits] Adding proposal failed:`, error);
+      return Contribution.addContribution(contribution).catch(error => {
+        robot.logger.error(`[hubot-kredits] Adding contribution failed:`, error);
       });
     }).catch(() => {
         robot.logger.info(`[hubot-kredits] No contributor found for ${username}`);
@@ -107,11 +106,11 @@ module.exports = async function(robot, kredits) {
     return results;
   }
 
-  function createProposals (changes) {
+  function createContributions (changes) {
     let promises = [];
 
     Object.keys(changes).forEach(user => {
-      promises.push(createProposalForUserChanges(user, changes[user]));
+      promises.push(createContributionForUserChanges(user, changes[user]));
     });
 
     return Promise.all(promises);
@@ -136,7 +135,7 @@ module.exports = async function(robot, kredits) {
     return amount;
   }
 
-  function createProposalForUserChanges (user, changes) {
+  function createContributionForUserChanges (user, changes) {
     const details = analyzeUserChanges(user, changes);
     const amount = calculateAmountForChanges(details);
 
@@ -157,7 +156,7 @@ module.exports = async function(robot, kredits) {
       url = `${wikiURL}index.php?title=${rc.title}&diff=${rc.revid}&oldid=${rc.old_revid}`;
     }
 
-    return createProposal(user, amount, desc, url, details);
+    return createContribution(user, amount, desc, url, details);
   }
 
   function updateTimestampForNextFetch () {
@@ -168,7 +167,7 @@ module.exports = async function(robot, kredits) {
   function processWikiChangesSinceLastRun () {
     fetchChanges()
       .then(res => groupChangesByUser(res))
-      .then(res => createProposals(res))
+      .then(res => createContributions(res))
       .then(() => updateTimestampForNextFetch());
   }
 
