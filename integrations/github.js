@@ -16,7 +16,8 @@ module.exports = async function(robot, kredits) {
   }
 
   const Contributor = kredits.Contributor;
-  const Operator = kredits.Operator;
+  const Proposal = kredits.Proposal;
+  const Contribution = kredits.Contribution;
 
   function getContributorByGithubUser(username) {
     return Contributor.all().then(contributors => {
@@ -45,7 +46,7 @@ module.exports = async function(robot, kredits) {
         kind: 'dev'
       };
 
-      return Operator.addProposal(contributionAttr).catch(error => {
+      return Proposal.addProposal(contributionAttr).catch(error => {
         robot.logger.error(`[hubot-kredits] Error:`, error);
         messageRoom(`I wanted to propose giving kredits to GitHub user ${githubUser} for ${url}, but I cannot find their info. Please add them as a contributor: https://kredits.kosmos.org`);
       });

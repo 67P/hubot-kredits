@@ -13,7 +13,8 @@ module.exports = async function(robot, kredits) {
   robot.logger.debug('[hubot-kredits] Loading MediaWiki integration...')
 
   const Contributor = kredits.Contributor;
-  const Operator = kredits.Operator;
+  const Proposal = kredits.Proposal;
+  const Contribution = kredits.Contribution;
 
   const wikiURL = process.env.KREDITS_MEDIAWIKI_URL;
   const apiURL =  wikiURL + 'api.php';
@@ -43,7 +44,7 @@ module.exports = async function(robot, kredits) {
         kind: 'docs'
       };
 
-      return Operator.addProposal(contribution).catch(error => {
+      return Proposal.addProposal(contribution).catch(error => {
         robot.logger.error(`[hubot-kredits] Adding proposal failed:`, error);
       });
     }).catch(() => {
