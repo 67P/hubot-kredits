@@ -47,7 +47,8 @@ module.exports = async function(robot, kredits) {
 
       return Contribution.addContribution(contributionAttr).catch(error => {
         robot.logger.error(`[hubot-kredits] Error:`, error);
-        messageRoom(`I wanted to propose giving kredits to GitHub user ${githubUser} for ${url}, but I cannot find their info. Please add them as a contributor: https://kredits.kosmos.org`);
+        messageRoom(`I tried to add a contribution for ${githubUser} for ${url}, but I encountered an error when submitting the tx:`);
+        messageRoom(error.message);
       });
     });
   }
