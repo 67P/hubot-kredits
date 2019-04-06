@@ -4,6 +4,10 @@ const fetch = require('node-fetch');
 const groupArray = require('group-array');
 const cron = require('node-cron');
 
+function sleep(ms) {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
 module.exports = async function(robot, kredits) {
 
   function messageRoom(message) {
@@ -106,14 +110,15 @@ module.exports = async function(robot, kredits) {
     return results;
   }
 
-  function createContributions (changes) {
+  async function createContributions (changes) {
     let promises = [];
 
-    Object.keys(changes).forEach(user => {
-      promises.push(createContributionForUserChanges(user, changes[user]));
-    });
+    for (const user of Object.keys(changes)) {
+      await createContributionForUserChanges(user, changes[user]);
+      await sleep(60000);
+    }
 
-    return Promise.all(promises);
+    return Promise.resolve();
   }
 
   function pageTitlesFromChanges(changes) {
@@ -171,6 +176,7 @@ module.exports = async function(robot, kredits) {
       .then(() => updateTimestampForNextFetch());
   }
 
-  cron.schedule('0 7 * * *', processWikiChangesSinceLastRun);
+  // cron.schedule('0 7 * * *', processWikiChangesSinceLastRun);
+  processWikiChangesSinceLastRun();
 
 };
