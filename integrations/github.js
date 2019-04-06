@@ -1,6 +1,10 @@
 const util = require('util');
 const fetch = require('node-fetch');
 
+function sleep(ms) {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
 module.exports = async function(robot, kredits) {
 
   function messageRoom(message) {
@@ -76,7 +80,7 @@ module.exports = async function(robot, kredits) {
     return amount;
   }
 
-  function handleGitHubIssueClosed(data) {
+  async function handleGitHubIssueClosed(data) {
     let recipients;
     let issue        = data.issue;
     let assignees    = issue.assignees.map(a => a.login);
@@ -100,15 +104,15 @@ module.exports = async function(robot, kredits) {
       recipients = [issue.user.login];
     }
 
-    let contributionPromises = [];
-    recipients.forEach(recipient => {
-      contributionPromises.push(
-        createContribution(recipient, amount, description, web_url, issue)
-          .catch(err => robot.logger.error(err))
-      );
-    });
+    for (const recipient of recipients) {
+      try {
+        await createContribution(recipient, amount, description, web_url, issue);
+        await sleep(60000);
+      }
+      catch (err) { robot.logger.error(err); }
+    }
 
-    return Promise.all(contributionPromises);
+    return Promise.resolve();
   }
 
   function handleGitHubPullRequestClosed(data) {
@@ -131,7 +135,7 @@ module.exports = async function(robot, kredits) {
         }
         return response.json();
       })
-      .then(issue => {
+      .then(async (issue) => {
         let amount = amountFromIssueLabels(issue);
         let repoName = pull_request.base.repo.full_name;
         let description = `${repoName}: ${pull_request.title}`;
@@ -144,16 +148,15 @@ module.exports = async function(robot, kredits) {
           return Promise.resolve();
         }
 
-        let contributionPromises = [];
-        recipients.forEach(recipient => {
-          robot.logger.debug(`[hubot-kredits] Creating contribution token for ${recipient}...`);
-          contributionPromises.push(
-            createContribution(recipient, amount, description, web_url, pull_request)
-              .catch(err => robot.logger.error(err))
-          );
-        });
+        for (const recipient of recipients) {
+          try {
+            await createContribution(recipient, amount, description, web_url, pull_request);
+            await sleep(60000);
+          }
+          catch (err) { robot.logger.error(err); }
+        }
 
-        return Promise.all(contributionPromises);
+        return Promise.resolve();
       });
   }
 
@@ -167,10 +170,12 @@ module.exports = async function(robot, kredits) {
     robot.logger.info(`Received GitHub hook. Event: ${evt}, action: ${data.action}`);
 
     if (evt === 'pull_request' && data.action === 'closed') {
-      handleGitHubPullRequestClosed(data).then(() => res.send(200));
+      handleGitHubPullRequestClosed(data);
+      res.send(200);
     }
     else if (evt === 'issues' && data.action === 'closed') {
-      handleGitHubIssueClosed(data).then(() => res.send(200));
+      handleGitHubIssueClosed(data);
+      res.send(200);
     } else {
       res.send(200);
     }
