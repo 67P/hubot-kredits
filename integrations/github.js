@@ -13,7 +13,7 @@ module.exports = async function(robot, kredits) {
 
   robot.logger.debug('[hubot-kredits] Loading GitHub integration...');
 
-  let repoBlackList = [];
+  const repoBlackList = [];
   if (process.env.KREDITS_GITHUB_REPO_BLACKLIST) {
     repoBlackList = process.env.KREDITS_GITHUB_REPO_BLACKLIST.split(',');
     robot.logger.debug('[hubot-kredits] Ignoring GitHub actions from ', util.inspect(repoBlackList));
@@ -24,7 +24,7 @@ module.exports = async function(robot, kredits) {
 
   function getContributorByGithubUser(username) {
     return Contributor.all().then(contributors => {
-      let contrib = contributors.find(c => {
+      const contrib = contributors.find(c => {
         return c.github_username === username;
       });
       if (!contrib) {
@@ -35,14 +35,16 @@ module.exports = async function(robot, kredits) {
     });
   }
 
-  function createContribution(githubUser, amount, description, url, details) {
+  function createContribution(githubUser, date, time, amount, description, url, details) {
     return getContributorByGithubUser(githubUser).then(contributor => {
       robot.logger.debug(`[hubot-kredits] Creating contribution token for ${amount}₭S to ${githubUser} for ${url}...`);
 
-      let contributionAttr = {
+      const contributionAttr = {
         contributorId: contributor.id,
-        amount: amount,
         contributorIpfsHash: contributor.ipfsHash,
+        date,
+        time,
+        amount,
         url,
         description,
         details,
@@ -58,8 +60,8 @@ module.exports = async function(robot, kredits) {
   }
 
   function amountFromIssueLabels(issue) {
-    let kreditsLabel = issue.labels.map(l => l.name)
-                            .filter(n => n.match(/^kredits/))[0];
+    const kreditsLabel = issue.labels.map(l => l.name)
+                              .filter(n => n.match(/^kredits/))[0];
     // No label, no kredits
     if (typeof kreditsLabel === 'undefined') { return 0; }
 
@@ -82,13 +84,14 @@ module.exports = async function(robot, kredits) {
 
   async function handleGitHubIssueClosed(data) {
     let recipients;
-    let issue        = data.issue;
-    let assignees    = issue.assignees.map(a => a.login);
-    let web_url      = issue.html_url;
+    const issue        = data.issue;
+    const assignees    = issue.assignees.map(a => a.login);
+    const web_url      = issue.html_url;
 
-    let amount = amountFromIssueLabels(issue);
-    let repoName = issue.repository_url.match(/.*\/(.+\/.+)$/)[1];
-    let description = `${repoName}: ${issue.title}`;
+    [date, time] = issue.closed_at.split('T');
+    const amount = amountFromIssueLabels(issue);
+    const repoName = issue.repository_url.match(/.*\/(.+\/.+)$/)[1];
+    const description = `${repoName}: ${issue.title}`;
 
     if (amount === 0) {
       robot.logger.info('[hubot-kredits] Kredits amount from issue label is zero; ignoring');
@@ -106,7 +109,7 @@ module.exports = async function(robot, kredits) {
 
     for (const recipient of recipients) {
       try {
-        await createContribution(recipient, amount, description, web_url, issue);
+        await createContribution(recipient, date, time, amount, description, web_url, issue);
         await sleep(60000);
       }
       catch (err) { robot.logger.error(err); }
@@ -117,10 +120,12 @@ module.exports = async function(robot, kredits) {
 
   function handleGitHubPullRequestClosed(data) {
     let recipients;
-    let pull_request = data.pull_request;
-    let assignees    = pull_request.assignees.map(a => a.login);
-    let web_url      = pull_request._links.html.href;
-    let pr_issue_url = pull_request.issue_url;
+    const pull_request = data.pull_request;
+    const assignees    = pull_request.assignees.map(a => a.login);
+    const web_url      = pull_request._links.html.href;
+    const pr_issue_url = pull_request.issue_url;
+
+    [date, time] = pull_request.merged_at.split('T');
 
     if (assignees.length > 0) {
       recipients = assignees;
@@ -136,9 +141,9 @@ module.exports = async function(robot, kredits) {
         return response.json();
       })
       .then(async (issue) => {
-        let amount = amountFromIssueLabels(issue);
-        let repoName = pull_request.base.repo.full_name;
-        let description = `${repoName}: ${pull_request.title}`;
+        const amount = amountFromIssueLabels(issue);
+        const repoName = pull_request.base.repo.full_name;
+        const description = `${repoName}: ${pull_request.title}`;
 
         if (amount === 0) {
           robot.logger.info('[hubot-kredits] Kredits amount from issue label is zero; ignoring');
@@ -150,7 +155,7 @@ module.exports = async function(robot, kredits) {
 
         for (const recipient of recipients) {
           try {
-            await createContribution(recipient, amount, description, web_url, pull_request);
+            await createContribution(recipient, date, time, amount, description, web_url, pull_request);
             await sleep(60000);
           }
           catch (err) { robot.logger.error(err); }
@@ -161,15 +166,15 @@ module.exports = async function(robot, kredits) {
   }
 
   robot.router.post('/incoming/kredits/github/'+process.env.KREDITS_WEBHOOK_TOKEN, (req, res) => {
-    let evt = req.header('X-GitHub-Event');
-    let data = req.body;
+    const evt = req.header('X-GitHub-Event');
+    const data = req.body;
     // For some reason data is contained in a payload property on one
     // machine, but directly in the root of the object on others
     if (data.payload) { data = JSON.parse(data.payload); }
 
     robot.logger.info(`Received GitHub hook. Event: ${evt}, action: ${data.action}`);
 
-    if (evt === 'pull_request' && data.action === 'closed') {
+    if (evt === 'pull_request' && data.action === 'closed' && data.pull_request.merged) {
       handleGitHubPullRequestClosed(data);
       res.send(200);
     }
