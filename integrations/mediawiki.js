@@ -33,14 +33,15 @@ module.exports = async function(robot, kredits) {
     });
   }
 
-  function createContribution(username, amount, description, url, details={}) {
+  function createContribution(username, date, amount, description, url, details={}) {
     return getContributorByWikiUser(username).then(contributor => {
       robot.logger.debug(`[hubot-kredits] Creating contribution token for ${amount}₭S to ${contributor.name} for ${url}...`);
 
       let contribution = {
         contributorId: contributor.id,
-        amount: amount,
         contributorIpfsHash: contributor.ipfsHash,
+        date,
+        amount: amount,
         url,
         description,
         details,
@@ -141,6 +142,10 @@ module.exports = async function(robot, kredits) {
   }
 
   function createContributionForUserChanges (user, changes) {
+    const dateNow = new Date();
+    const dateYesterday = dateNow.setDate(dateNow.getDate() - 1);
+    const date = (new Date(dateYesterday)).toISOString().split('T')[0];
+
     const details = analyzeUserChanges(user, changes);
     const amount = calculateAmountForChanges(details);
 
@@ -161,7 +166,7 @@ module.exports = async function(robot, kredits) {
       url = `${wikiURL}index.php?title=${rc.title}&diff=${rc.revid}&oldid=${rc.old_revid}`;
     }
 
-    return createContribution(user, amount, desc, url, details);
+    return createContribution(user, date, amount, desc, url, details);
   }
 
   function updateTimestampForNextFetch () {
