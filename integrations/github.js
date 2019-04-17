@@ -167,7 +167,7 @@ module.exports = async function(robot, kredits) {
 
   robot.router.post('/incoming/kredits/github/'+process.env.KREDITS_WEBHOOK_TOKEN, (req, res) => {
     const evt = req.header('X-GitHub-Event');
-    const data = req.body;
+    let data = req.body;
     // For some reason data is contained in a payload property on one
     // machine, but directly in the root of the object on others
     if (data.payload) { data = JSON.parse(data.payload); }
