@@ -13,7 +13,7 @@ module.exports = async function(robot, kredits) {
 
   robot.logger.debug('[hubot-kredits] Loading GitHub integration...');
 
-  const repoBlackList = [];
+  let repoBlackList = [];
   if (process.env.KREDITS_GITHUB_REPO_BLACKLIST) {
     repoBlackList = process.env.KREDITS_GITHUB_REPO_BLACKLIST.split(',');
     robot.logger.debug('[hubot-kredits] Ignoring GitHub actions from ', util.inspect(repoBlackList));
