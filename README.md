@@ -24,7 +24,6 @@ As usual in Hubot, you can add all config as environment variables.
 | `KREDITS_WALLET_PATH` | Path to an Etherum wallet JSON file (default: `./wallet.json`) |
 | `KREDITS_WALLET_PASSWORD` | Wallet password |
 | `KREDITS_PROVIDER_URL` | Ethereum JSON-RPC URL (default: `http://localhost:7545`) |
-| `KREDITS_NETWORK_ID` | The ethereum network ID to use (default: 100 = local) |
 
 ## Integrations
 

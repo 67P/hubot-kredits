@@ -7,7 +7,6 @@ const Kredits = require('kredits-contracts');
 const walletPath  = process.env.KREDITS_WALLET_PATH || './wallet.json';
 const walletJson  = fs.readFileSync(walletPath);
 const providerUrl = process.env.KREDITS_PROVIDER_URL;
-const networkId = parseInt(process.env.KREDITS_NETWORK_ID || 100);
 
 const ipfsConfig = {
   host: process.env.IPFS_API_HOST || 'localhost',
