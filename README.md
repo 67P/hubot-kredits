@@ -46,6 +46,25 @@ Point a GitHub organization webhook to the following URL:
 | --- | --- |
 | `KREDITS_GITHUB_REPO_BLACKLIST` | Repos which you do not want to issue kredits for. Format: `orgname/reponame`, e.g. `67P/test-one-two` |
 
+### Gitea
+
+The Gitea integration will watch for closed issues and merged pull requests,
+which carry a kredits label: `kredits-1`, `kredits-2`, `kredits-3` for small,
+medium and large contributions. If there are multiple people assigned, it will
+issue contribution tokens for all of them.
+
+#### Setup
+
+Point a Gitea organization webhook to the following URL:
+
+    https://your-hubot.example.com/incoming/kredits/gitea/{webhook_token}
+
+#### Config
+
+| Key | Description |
+| --- | --- |
+| `KREDITS_GITEA_REPO_BLACKLIST` | Repos which you do not want to issue kredits for. Format: `orgname/reponame`, e.g. `kosmos/test-one-two` |
+
 ### MediaWiki
 
 The MediaWiki integration will periodically check for wiki page creations and
