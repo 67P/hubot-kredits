@@ -85,7 +85,7 @@ module.exports = async function(robot, kredits) {
   async function handleGiteaIssueClosed(data) {
     const issue       = data.issue;
     const repoName    = data.repository.full_name;
-    const web_url     = `${data.repository.html_url}/issues/${issue.id}`;
+    const web_url     = `${data.repository.html_url}/issues/${issue.number}`;
     const description = `${repoName}: ${issue.title}`;
     const amount      = amountFromLabels(issue.labels);
     const assignees   = issue.assignees ? issue.assignees.map(a => a.login) : [];

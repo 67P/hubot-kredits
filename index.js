@@ -53,6 +53,7 @@ module.exports = async function(robot) {
     kredits = await new Kredits(signer.provider, signer, {
       // TODO support local devchain custom address
       apm: 'open.aragonpm.eth',
+      // addresses: { Kernel: '0x93aa4531329e4bf3efcd1ec0b74adb6f66d9d10e' }
       ipfsConfig
     }).init();
   } catch(error) {
