@@ -1,5 +1,7 @@
 const util = require('util');
 const fetch = require('node-fetch');
+const amountFromLabels = require('./utils/amount-from-labels');
+const kindFromLabels = require('./utils/kind-from-labels');
 
 function sleep(ms) {
   return new Promise(resolve => setTimeout(resolve, ms));
@@ -35,7 +37,7 @@ module.exports = async function(robot, kredits) {
     });
   }
 
-  function createContribution(giteaUser, date, time, amount, description, url, details) {
+  function createContribution(giteaUser, date, time, amount, kind, description, url, details) {
     return getContributorByGiteaUser(giteaUser).then(contributor => {
       robot.logger.debug(`[hubot-kredits] Creating contribution token for ${amount}₭S to ${giteaUser} for ${url}...`);
 
@@ -45,11 +47,14 @@ module.exports = async function(robot, kredits) {
         date,
         time,
         amount,
-        url,
+        kind,
         description,
-        details,
-        kind: 'dev'
+        url,
+        details
       };
+
+      robot.logger.debug(`[hubot-kredits] contribution attributes:`);
+      robot.logger.debug(util.inspect(contributionAttr, { depth: 1, colors: true }));
 
       return Contribution.addContribution(contributionAttr).catch(error => {
         robot.logger.error(`[hubot-kredits] Error:`, error);
@@ -59,35 +64,14 @@ module.exports = async function(robot, kredits) {
     });
   }
 
-  function amountFromLabels(labels) {
-    const kreditsLabel = labels.map(l => l.name)
-                               .filter(n => n.match(/^kredits/))[0];
-    // No label, no kredits
-    if (typeof kreditsLabel === 'undefined') { return 0; }
-
-    // TODO move to config maybe?
-    let amount;
-    switch(kreditsLabel) {
-      case 'kredits-1':
-        amount = 500;
-        break;
-      case 'kredits-2':
-        amount = 1500;
-        break;
-      case 'kredits-3':
-        amount = 5000;
-        break;
-    }
-
-    return amount;
-  }
-
   async function handleGiteaIssueClosed(data) {
     const issue       = data.issue;
     const repoName    = data.repository.full_name;
     const web_url     = `${data.repository.html_url}/issues/${issue.number}`;
     const description = `${repoName}: ${issue.title}`;
-    const amount      = amountFromLabels(issue.labels);
+    const labels      = issue.labels.map(l => l.name);
+    const amount      = amountFromLabels(labels);
+    const kind        = kindFromLabels(labels);
     const assignees   = issue.assignees ? issue.assignees.map(a => a.login) : [];
     [ date, time ]    = issue.closed_at.split('T');
 
@@ -108,7 +92,8 @@ module.exports = async function(robot, kredits) {
 
     for (const recipient of recipients) {
       try {
-        await createContribution(recipient, date, time, amount, description, web_url,
+        await createContribution(recipient, date, time, amount,
+                                 kind, description, web_url,
                                  { issue, repository: data.repository });
         await sleep(60000);
       }
@@ -123,7 +108,9 @@ module.exports = async function(robot, kredits) {
     const repoName     = data.repository.full_name;
     const web_url      = pull_request.html_url;
     const description  = `${repoName}: ${pull_request.title}`;
-    const amount       = amountFromLabels(pull_request.labels);
+    const labels      = pull_request.labels.map(l => l.name);
+    const amount      = amountFromLabels(labels);
+    const kind        = kindFromLabels(labels);
     const assignees    = pull_request.assignees ? pull_request.assignees.map(a => a.login) : [];
     [ date, time ]     = pull_request.merged_at.split('T');
 
@@ -142,10 +129,10 @@ module.exports = async function(robot, kredits) {
       recipients = [pull_request.user.login];
     }
 
-
     for (const recipient of recipients) {
       try {
-        await createContribution(recipient, date, time, amount, description, web_url,
+        await createContribution(recipient, date, time, amount,
+                                 kind, description, web_url,
                                  { pull_request, repository: data.repository });
         await sleep(60000);
       }
