@@ -1,5 +1,7 @@
 const util = require('util');
 const fetch = require('node-fetch');
+const amountFromLabels = require('./utils/amount-from-labels');
+const kindFromLabels = require('./utils/kind-from-labels');
 
 function sleep(ms) {
   return new Promise(resolve => setTimeout(resolve, ms));
@@ -35,9 +37,9 @@ module.exports = async function(robot, kredits) {
     });
   }
 
-  function createContribution(githubUser, date, time, amount, description, url, details) {
+  function createContribution(githubUser, date, time, amount, kind, description, url, details) {
     return getContributorByGithubUser(githubUser).then(contributor => {
-      robot.logger.debug(`[hubot-kredits] Creating contribution token for ${amount}₭S to ${githubUser} for ${url}...`);
+      robot.logger.info(`[hubot-kredits] Creating contribution token for ${amount}₭S to ${githubUser} for ${url}...`);
 
       const contributionAttr = {
         contributorId: contributor.id,
@@ -45,11 +47,14 @@ module.exports = async function(robot, kredits) {
         date,
         time,
         amount,
-        url,
+        kind,
         description,
-        details,
-        kind: 'dev'
+        url,
+        details
       };
+
+      robot.logger.debug(`[hubot-kredits] contribution attributes:`);
+      robot.logger.debug(util.inspect(contributionAttr, { depth: 1, colors: true }));
 
       return Contribution.addContribution(contributionAttr).catch(error => {
         robot.logger.error(`[hubot-kredits] Error:`, error);
@@ -59,38 +64,17 @@ module.exports = async function(robot, kredits) {
     });
   }
 
-  function amountFromIssueLabels(issue) {
-    const kreditsLabel = issue.labels.map(l => l.name)
-                              .filter(n => n.match(/^kredits/))[0];
-    // No label, no kredits
-    if (typeof kreditsLabel === 'undefined') { return 0; }
-
-    // TODO move to config maybe?
-    let amount;
-    switch(kreditsLabel) {
-      case 'kredits-1':
-        amount = 500;
-        break;
-      case 'kredits-2':
-        amount = 1500;
-        break;
-      case 'kredits-3':
-        amount = 5000;
-        break;
-    }
-
-    return amount;
-  }
-
   async function handleGitHubIssueClosed(data) {
     let recipients;
-    const issue        = data.issue;
-    const assignees    = issue.assignees.map(a => a.login);
-    const web_url      = issue.html_url;
+    const issue       = data.issue;
+    const assignees   = issue.assignees.map(a => a.login);
+    const web_url     = issue.html_url;
 
-    [date, time] = issue.closed_at.split('T');
-    const amount = amountFromIssueLabels(issue);
-    const repoName = issue.repository_url.match(/.*\/(.+\/.+)$/)[1];
+    [date, time]      = issue.closed_at.split('T');
+    const labels      = issue.labels.map(l => l.name);
+    const amount      = amountFromLabels(labels);
+    const kind        = kindFromLabels(labels);
+    const repoName    = issue.repository_url.match(/.*\/(.+\/.+)$/)[1];
     const description = `${repoName}: ${issue.title}`;
 
     if (amount === 0) {
@@ -109,7 +93,7 @@ module.exports = async function(robot, kredits) {
 
     for (const recipient of recipients) {
       try {
-        await createContribution(recipient, date, time, amount, description, web_url, issue);
+        await createContribution(recipient, date, time, amount, kind, description, web_url, issue);
         await sleep(60000);
       }
       catch (err) { robot.logger.error(err); }
@@ -141,8 +125,10 @@ module.exports = async function(robot, kredits) {
         return response.json();
       })
       .then(async (issue) => {
-        const amount = amountFromIssueLabels(issue);
-        const repoName = pull_request.base.repo.full_name;
+        const labels      = issue.labels.map(l => l.name);
+        const amount      = amountFromLabels(labels);
+        const kind        = kindFromLabels(labels);
+        const repoName    = pull_request.base.repo.full_name;
         const description = `${repoName}: ${pull_request.title}`;
 
         if (amount === 0) {
@@ -155,7 +141,7 @@ module.exports = async function(robot, kredits) {
 
         for (const recipient of recipients) {
           try {
-            await createContribution(recipient, date, time, amount, description, web_url, pull_request);
+            await createContribution(recipient, date, time, amount, kind, description, web_url, pull_request);
             await sleep(60000);
           }
           catch (err) { robot.logger.error(err); }
@@ -176,13 +162,13 @@ module.exports = async function(robot, kredits) {
 
     if (evt === 'pull_request' && data.action === 'closed' && data.pull_request.merged) {
       handleGitHubPullRequestClosed(data);
-      res.send(200);
+      res.sendStatus(200);
     }
     else if (evt === 'issues' && data.action === 'closed') {
       handleGitHubIssueClosed(data);
-      res.send(200);
+      res.sendStatus(200);
     } else {
-      res.send(200);
+      res.sendStatus(200);
     }
   });
 
