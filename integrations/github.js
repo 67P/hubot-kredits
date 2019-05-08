@@ -35,9 +35,9 @@ module.exports = async function(robot, kredits) {
     });
   }
 
-  function createContribution(githubUser, date, time, amount, description, url, details) {
+  function createContribution(githubUser, date, time, amount, kind, description, url, details) {
     return getContributorByGithubUser(githubUser).then(contributor => {
-      robot.logger.debug(`[hubot-kredits] Creating contribution token for ${amount}₭S to ${githubUser} for ${url}...`);
+      robot.logger.info(`[hubot-kredits] Creating contribution token for ${amount}₭S to ${githubUser} for ${url}...`);
 
       const contributionAttr = {
         contributorId: contributor.id,
@@ -45,11 +45,14 @@ module.exports = async function(robot, kredits) {
         date,
         time,
         amount,
-        url,
+        kind,
         description,
-        details,
-        kind: 'dev'
+        url,
+        details
       };
+
+      robot.logger.debug(`[hubot-kredits] contribution attributes:`);
+      robot.logger.debug(util.inspect(contributionAttr, { depth: 1, colors: true }));
 
       return Contribution.addContribution(contributionAttr).catch(error => {
         robot.logger.error(`[hubot-kredits] Error:`, error);
@@ -82,15 +85,36 @@ module.exports = async function(robot, kredits) {
     return amount;
   }
 
+  function kindFromIssueLabels(issue) {
+    const labels = issue.labels.map(l => l.name);
+    let kind = 'dev';
+
+    if (labels.find(l => l.match(/ops|operations/)))  {
+      kind = 'ops';
+    }
+    else if (labels.find(l => l.match(/docs|documentation/)))  {
+      kind = 'docs';
+    }
+    else if (labels.find(l => l.match(/design/)))  {
+      kind = 'design';
+    }
+    else if (labels.find(l => l.match(/community/)))  {
+      kind = 'community';
+    }
+
+    return kind;
+  }
+
   async function handleGitHubIssueClosed(data) {
     let recipients;
-    const issue        = data.issue;
-    const assignees    = issue.assignees.map(a => a.login);
-    const web_url      = issue.html_url;
+    const issue       = data.issue;
+    const assignees   = issue.assignees.map(a => a.login);
+    const web_url     = issue.html_url;
 
-    [date, time] = issue.closed_at.split('T');
-    const amount = amountFromIssueLabels(issue);
-    const repoName = issue.repository_url.match(/.*\/(.+\/.+)$/)[1];
+    [date, time]      = issue.closed_at.split('T');
+    const amount      = amountFromIssueLabels(issue);
+    const kind        = kindFromIssueLabels(issue);
+    const repoName    = issue.repository_url.match(/.*\/(.+\/.+)$/)[1];
     const description = `${repoName}: ${issue.title}`;
 
     if (amount === 0) {
@@ -109,7 +133,7 @@ module.exports = async function(robot, kredits) {
 
     for (const recipient of recipients) {
       try {
-        await createContribution(recipient, date, time, amount, description, web_url, issue);
+        await createContribution(recipient, date, time, amount, kind, description, web_url, issue);
         await sleep(60000);
       }
       catch (err) { robot.logger.error(err); }
@@ -141,8 +165,9 @@ module.exports = async function(robot, kredits) {
         return response.json();
       })
       .then(async (issue) => {
-        const amount = amountFromIssueLabels(issue);
-        const repoName = pull_request.base.repo.full_name;
+        const amount      = amountFromIssueLabels(issue);
+        const kind        = kindFromIssueLabels(issue);
+        const repoName    = pull_request.base.repo.full_name;
         const description = `${repoName}: ${pull_request.title}`;
 
         if (amount === 0) {
@@ -155,7 +180,7 @@ module.exports = async function(robot, kredits) {
 
         for (const recipient of recipients) {
           try {
-            await createContribution(recipient, date, time, amount, description, web_url, pull_request);
+            await createContribution(recipient, date, time, amount, kind, description, web_url, pull_request);
             await sleep(60000);
           }
           catch (err) { robot.logger.error(err); }
