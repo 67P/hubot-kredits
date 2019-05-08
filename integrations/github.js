@@ -1,5 +1,7 @@
 const util = require('util');
 const fetch = require('node-fetch');
+const amountFromLabels = require('./utils/amount-from-labels');
+const kindFromLabels = require('./utils/kind-from-labels');
 
 function sleep(ms) {
   return new Promise(resolve => setTimeout(resolve, ms));
@@ -62,49 +64,6 @@ module.exports = async function(robot, kredits) {
     });
   }
 
-  function amountFromIssueLabels(issue) {
-    const kreditsLabel = issue.labels.map(l => l.name)
-                              .filter(n => n.match(/^kredits/))[0];
-    // No label, no kredits
-    if (typeof kreditsLabel === 'undefined') { return 0; }
-
-    // TODO move to config maybe?
-    let amount;
-    switch(kreditsLabel) {
-      case 'kredits-1':
-        amount = 500;
-        break;
-      case 'kredits-2':
-        amount = 1500;
-        break;
-      case 'kredits-3':
-        amount = 5000;
-        break;
-    }
-
-    return amount;
-  }
-
-  function kindFromIssueLabels(issue) {
-    const labels = issue.labels.map(l => l.name);
-    let kind = 'dev';
-
-    if (labels.find(l => l.match(/ops|operations/)))  {
-      kind = 'ops';
-    }
-    else if (labels.find(l => l.match(/docs|documentation/)))  {
-      kind = 'docs';
-    }
-    else if (labels.find(l => l.match(/design/)))  {
-      kind = 'design';
-    }
-    else if (labels.find(l => l.match(/community/)))  {
-      kind = 'community';
-    }
-
-    return kind;
-  }
-
   async function handleGitHubIssueClosed(data) {
     let recipients;
     const issue       = data.issue;
@@ -112,8 +71,9 @@ module.exports = async function(robot, kredits) {
     const web_url     = issue.html_url;
 
     [date, time]      = issue.closed_at.split('T');
-    const amount      = amountFromIssueLabels(issue);
-    const kind        = kindFromIssueLabels(issue);
+    const labels      = issue.labels.map(l => l.name);
+    const amount      = amountFromLabels(labels);
+    const kind        = kindFromLabels(labels);
     const repoName    = issue.repository_url.match(/.*\/(.+\/.+)$/)[1];
     const description = `${repoName}: ${issue.title}`;
 
@@ -165,8 +125,9 @@ module.exports = async function(robot, kredits) {
         return response.json();
       })
       .then(async (issue) => {
-        const amount      = amountFromIssueLabels(issue);
-        const kind        = kindFromIssueLabels(issue);
+        const labels      = issue.labels.map(l => l.name);
+        const amount      = amountFromLabels(labels);
+        const kind        = kindFromLabels(labels);
         const repoName    = pull_request.base.repo.full_name;
         const description = `${repoName}: ${pull_request.title}`;
 
