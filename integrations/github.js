@@ -162,13 +162,13 @@ module.exports = async function(robot, kredits) {
 
     if (evt === 'pull_request' && data.action === 'closed' && data.pull_request.merged) {
       handleGitHubPullRequestClosed(data);
-      res.send(200);
+      res.sendStatus(200);
     }
     else if (evt === 'issues' && data.action === 'closed') {
       handleGitHubIssueClosed(data);
-      res.send(200);
+      res.sendStatus(200);
     } else {
-      res.send(200);
+      res.sendStatus(200);
     }
   });
 
