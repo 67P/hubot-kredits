@@ -1,5 +1,6 @@
 const util = require('util');
 const fetch = require('node-fetch');
+const grant = require('grant-express');
 const amountFromLabels = require('./utils/amount-from-labels');
 const kindFromLabels = require('./utils/kind-from-labels');
 
@@ -172,4 +173,72 @@ module.exports = async function(robot, kredits) {
     }
   });
 
+
+
+  if (process.env.GITHUB_KEY && process.env.GITHUB_SECRET) {
+    const grantConfig = {
+      defaults: {
+        protocol: (process.env.GRANT_PROTOCOL || "http"),
+        host: (process.env.GRANT_HOST || 'localhost:3000')
+      },
+      github: {
+        key: process.env.GITHUB_KEY,
+        secret: process.env.GITHUB_SECRET,
+        scope: ['user', 'public_repo'],
+        callback: 'https://kredits.kosmos.org/signup/github'
+      }
+    };
+
+    robot.router.use('/kredits/signup/github/', grant(grantConfig));
+
+    robot.router.post('/kredits/signup/github', async (req, res) => {
+      const accessToken = req.body.accessToken;
+      if (!accessToken) {
+        res.status(400).json({});
+        return;
+      }
+      const githubResponse = await fetch('https://api.github.com/user', {
+        headers: {
+          'Accept': 'application/vnd.github.v3+json',
+          'Authorization': `token ${accessToken}`
+        }
+      });
+      if (githubResponse.status >= 300) {
+        res.sendStatus(githubResponse.status);
+        return;
+      }
+      const user = await githubResponse.json();
+
+      const contributor = await kredits.Contributor.findByAccount({
+        site: 'github.com',
+        username: user.login
+      });
+
+      if (!contributor) {
+        let contributorAttr = {};
+        contributorAttr.account = req.body.account;
+        contributorAttr.name = user.name;
+        contributorAttr.kind = "person";
+        contributorAttr.url = user.blog;
+        contributorAttr.github_username = user.login;
+        contributorAttr.github_uid = user.id;
+
+        kredits.Contributor.add(contributorAttr)
+          .then(transaction => {
+            robot.logger.info('Contributor added', transaction.hash);
+            res.json({
+              transactionHash: transaction.hash,
+              github_username: user.login
+            });
+          });
+      } else {
+        res.json({
+          github_username: user.login
+        });
+      }
+    });
+
+  } else {
+    robot.logger.warn('No GITHUB_KEY and GITHUB_SECRET configured for oauth signup');
+  }
 };
