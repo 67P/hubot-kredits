@@ -1,5 +1,6 @@
 const util = require('util');
 const fetch = require('node-fetch');
+const session = require('express-session');
 const grant = require('grant-express');
 const amountFromLabels = require('./utils/amount-from-labels');
 const kindFromLabels = require('./utils/kind-from-labels');
@@ -174,22 +175,45 @@ module.exports = async function(robot, kredits) {
   });
 
 
-
   if (process.env.GITHUB_KEY && process.env.GITHUB_SECRET) {
     const grantConfig = {
       defaults: {
         protocol: (process.env.GRANT_PROTOCOL || "http"),
-        host: (process.env.GRANT_HOST || 'localhost:3000')
+        host: (process.env.GRANT_HOST || 'localhost:8888'),
+        transport: 'session',
+        response: 'tokens',
+        path: '/kredits/signup'
       },
       github: {
         key: process.env.GITHUB_KEY,
         secret: process.env.GITHUB_SECRET,
         scope: ['user', 'public_repo'],
-        callback: 'https://kredits.kosmos.org/signup/github'
+        callback: '/kredits/signup/github'
       }
     };
 
-    robot.router.use('/kredits/signup/github/', grant(grantConfig));
+    const allowCORS = function (req, res, next) {
+      res.setHeader('Access-Control-Allow-Origin', '*');
+      res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+      res.setHeader('Access-Control-Allow-Headers', 'Origin, Content-Type, Accept');
+      res.setHeader('Access-Control-Expose-Headers', 'ETag, Content-Length');
+      next();
+    };
+    robot.router.use(allowCORS);
+
+    robot.router.use(session({secret: 'grant'}));
+    robot.router.use('/kredits/signup', grant(grantConfig));
+
+    robot.router.get('/kredits/signup/github', async (req, res) => {
+      const access_token = req.session.grant.response.access_token;
+      const kreditsWebUrl = process.env.KREDITS_WEB_URL || 'https://kredits.kosmos.org';
+
+      res.redirect(`${kreditsWebUrl}/signup/github#access_token=${access_token}`);
+    });
+
+    robot.router.options('/kredits/signup/github', async (req, res) => {
+      res.status(200).json({});
+    });
 
     robot.router.post('/kredits/signup/github', async (req, res) => {
       const accessToken = req.body.accessToken;
@@ -226,6 +250,7 @@ module.exports = async function(robot, kredits) {
         kredits.Contributor.add(contributorAttr)
           .then(transaction => {
             robot.logger.info('Contributor added', transaction.hash);
+            res.status(201);
             res.json({
               transactionHash: transaction.hash,
               github_username: user.login

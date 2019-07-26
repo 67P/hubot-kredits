@@ -12,6 +12,9 @@
   "dependencies": {
     "eth-provider": "^0.2.2",
     "ethers": "^4.0.27",
+    "express": "^4.17.1",
+    "express-session": "^1.16.2",
+    "grant-express": "^4.6.1",
     "group-array": "^0.3.3",
     "kosmos-schemas": "^1.1.2",
     "kredits-contracts": "^5.3.0",
