@@ -26,6 +26,7 @@ module.exports = async function(robot, kredits) {
 
   const Contributor = kredits.Contributor;
   const Contribution = kredits.Contribution;
+  const kreditsWebUrl = process.env.KREDITS_WEB_URL || 'https://kredits.kosmos.org';
 
   function getContributorByGithubUser(username) {
     return Contributor.all().then(contributors => {
@@ -198,7 +199,6 @@ module.exports = async function(robot, kredits) {
 
     robot.router.get('/kredits/signup/github', async (req, res) => {
       const access_token = req.session.grant.response.access_token;
-      const kreditsWebUrl = process.env.KREDITS_WEB_URL || 'https://kredits.kosmos.org';
 
       res.redirect(`${kreditsWebUrl}/signup/github#access_token=${access_token}`);
     });
@@ -239,7 +239,7 @@ module.exports = async function(robot, kredits) {
 
         kredits.Contributor.add(contributorAttr)
           .then(transaction => {
-            robot.logger.info('Contributor added', transaction.hash);
+            robot.logger.info('[hubot-kredits] Contributor added from GitHub signup', transaction.hash);
             res.status(201);
             res.json({
               transactionHash: transaction.hash,
