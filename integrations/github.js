@@ -2,6 +2,7 @@ const util = require('util');
 const fetch = require('node-fetch');
 const session = require('express-session');
 const grant = require('grant-express');
+const cors = require('cors');
 const amountFromLabels = require('./utils/amount-from-labels');
 const kindFromLabels = require('./utils/kind-from-labels');
 
@@ -192,15 +193,6 @@ module.exports = async function(robot, kredits) {
       }
     };
 
-    const allowCORS = function (req, res, next) {
-      res.setHeader('Access-Control-Allow-Origin', '*');
-      res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-      res.setHeader('Access-Control-Allow-Headers', 'Origin, Content-Type, Accept');
-      res.setHeader('Access-Control-Expose-Headers', 'ETag, Content-Length');
-      next();
-    };
-    robot.router.use(allowCORS);
-
     robot.router.use(session({secret: 'grant'}));
     robot.router.use('/kredits/signup', grant(grantConfig));
 
@@ -211,11 +203,9 @@ module.exports = async function(robot, kredits) {
       res.redirect(`${kreditsWebUrl}/signup/github#access_token=${access_token}`);
     });
 
-    robot.router.options('/kredits/signup/github', async (req, res) => {
-      res.status(200).json({});
-    });
+    robot.router.options('/kredits/signup/github', cors());
 
-    robot.router.post('/kredits/signup/github', async (req, res) => {
+    robot.router.post('/kredits/signup/github', cors(), async (req, res) => {
       const accessToken = req.body.accessToken;
       if (!accessToken) {
         res.status(400).json({});

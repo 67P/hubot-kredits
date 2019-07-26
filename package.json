@@ -10,6 +10,7 @@
     "create-wallet": "scripts/create-wallet.js"
   },
   "dependencies": {
+    "cors": "^2.8.5",
     "eth-provider": "^0.2.2",
     "ethers": "^4.0.27",
     "express": "^4.17.1",
