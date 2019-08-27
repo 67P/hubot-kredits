@@ -193,7 +193,6 @@ module.exports = async function(robot, kredits) {
       github: {
         key: process.env.GITHUB_KEY,
         secret: process.env.GITHUB_SECRET,
-        scope: ['user', 'public_repo'],
         callback: '/kredits/signup/github'
       }
     };
@@ -235,7 +234,7 @@ module.exports = async function(robot, kredits) {
       if (!contributor) {
         let contributorAttr = {};
         contributorAttr.account = req.body.account;
-        contributorAttr.name = user.name;
+        contributorAttr.name = user.name || user.login;
         contributorAttr.kind = "person";
         contributorAttr.url = user.blog;
         contributorAttr.github_username = user.login;
@@ -249,9 +248,10 @@ module.exports = async function(robot, kredits) {
               transactionHash: transaction.hash,
               github_username: user.login
             });
-          }).catch((error) => {
-            robot.logger.error(`[hubot-kredits] Error adding contributor:`, error);
-            res.sendStatus(500);
+          }, error => {
+            robot.logger.error(`[hubot-kredits] Adding contributor failed: ${error}`);
+            res.status(422);
+            res.json({ error })
           });
       } else {
         res.json({
