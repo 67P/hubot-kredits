@@ -214,14 +214,20 @@ module.exports = async function(robot, kredits) {
         res.status(400).json({});
         return;
       }
-      const githubResponse = await fetch('https://api.github.com/user', {
-        headers: {
-          'Accept': 'application/vnd.github.v3+json',
-          'Authorization': `token ${accessToken}`
-        }
-      });
+      try {
+        const githubResponse = await fetch('https://api.github.com/user', {
+          headers: {
+            'Accept': 'application/vnd.github.v3+json',
+            'Authorization': `token ${accessToken}`
+          }
+        });
+      } catch (error) {
+        robot.logger.error('[hubot-kredits] Fetching user data from GitHub failed:', error);
+        res.status(500).json({ error });
+      };
+
       if (githubResponse.status >= 300) {
-        res.sendStatus(githubResponse.status);
+        res.status(githubResponse.status).json({});
         return;
       }
       const user = await githubResponse.json();
