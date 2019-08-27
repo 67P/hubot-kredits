@@ -25,6 +25,7 @@ As usual in Hubot, you can add all config as environment variables.
 | `KREDITS_WALLET_PASSWORD` | Wallet password |
 | `KREDITS_PROVIDER_URL` | Ethereum JSON-RPC URL (default: `http://localhost:7545`) |
 | `KREDITS_WEB_URL` | URL of the Kredits Web app (default: `https://kredits.kosmos.org`) |
+| `KREDITS_DAO_ADDRESS` | DAO Kernel address |
 
 ## Integrations
 
