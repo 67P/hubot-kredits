@@ -129,8 +129,7 @@ module.exports = async function(robot, kredits) {
   function calculateAmountForChanges(details) {
     let amount;
 
-    if (details.charsAdded < 280) {
-      // less than a tweet
+    if (details.charsAdded < 500) {
       amount = 500;
     } else if (details.charsAdded < 2000) {
       amount = 1500;
