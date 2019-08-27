@@ -50,13 +50,9 @@ module.exports = async function(robot) {
   //
 
   const opts = { ipfsConfig };
-
   if (daoAddress) {
     opts.addresses = { Kernel: daoAddress };
-  } else {
-    opts.apm = 'open.aragonpm.eth';
   }
-
   let kredits;
 
   try {
