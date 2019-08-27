@@ -176,6 +176,9 @@ module.exports = async function(robot, kredits) {
     }
   });
 
+  //
+  // GitHub signup
+  //
 
   if (process.env.GITHUB_KEY && process.env.GITHUB_SECRET) {
     const grantConfig = {
@@ -252,8 +255,7 @@ module.exports = async function(robot, kredits) {
         });
       }
     });
-
   } else {
-    robot.logger.warn('No GITHUB_KEY and GITHUB_SECRET configured for oauth signup');
+    robot.logger.warning('[hubot-kredits] No GITHUB_KEY and GITHUB_SECRET configured for OAuth signup');
   }
 };
