@@ -7,6 +7,7 @@ const Kredits = require('kredits-contracts');
 const walletPath  = process.env.KREDITS_WALLET_PATH || './wallet.json';
 const walletJson  = fs.readFileSync(walletPath);
 const providerUrl = process.env.KREDITS_PROVIDER_URL;
+const daoAddress  = process.env.KREDITS_DAO_ADDRESS;
 
 const ipfsConfig = {
   host: process.env.IPFS_API_HOST || 'localhost',
@@ -48,14 +49,18 @@ module.exports = async function(robot) {
   // Kredits contracts setup
   //
 
+  const opts = { ipfsConfig };
+
+  if (daoAddress) {
+    opts.addresses = { Kernel: daoAddress };
+  } else {
+    opts.apm = 'open.aragonpm.eth';
+  }
+
   let kredits;
+
   try {
-    kredits = await new Kredits(signer.provider, signer, {
-      // TODO support local devchain custom address
-      apm: 'open.aragonpm.eth',
-      // addresses: { Kernel: '0x93aa4531329e4bf3efcd1ec0b74adb6f66d9d10e' }
-      ipfsConfig
-    }).init();
+    kredits = await new Kredits(signer.provider, signer, opts).init();
   } catch(error) {
     robot.logger.warning('[hubot-kredits] Could not set up kredits:', error);
     process.exit(1);
