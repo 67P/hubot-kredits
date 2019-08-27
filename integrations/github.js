@@ -24,9 +24,10 @@ module.exports = async function(robot, kredits) {
     robot.logger.debug('[hubot-kredits] Ignoring GitHub actions from ', util.inspect(repoBlackList));
   }
 
+  const kreditsWebUrl = process.env.KREDITS_WEB_URL || 'https://kredits.kosmos.org';
+
   const Contributor = kredits.Contributor;
   const Contribution = kredits.Contribution;
-  const kreditsWebUrl = process.env.KREDITS_WEB_URL || 'https://kredits.kosmos.org';
 
   function getContributorByGithubUser(username) {
     return Contributor.all().then(contributors => {
@@ -240,7 +241,7 @@ module.exports = async function(robot, kredits) {
         contributorAttr.github_username = user.login;
         contributorAttr.github_uid = user.id;
 
-        kredits.Contributor.add(contributorAttr)
+        kredits.Contributor.add(contributorAttr, { gasLimit: 350000 })
           .then(transaction => {
             robot.logger.info('[hubot-kredits] Contributor added from GitHub signup', transaction.hash);
             res.status(201);
@@ -248,6 +249,9 @@ module.exports = async function(robot, kredits) {
               transactionHash: transaction.hash,
               github_username: user.login
             });
+          }).catch((error) => {
+            robot.logger.error(`[hubot-kredits] Error adding contributor:`, error);
+            res.sendStatus(500);
           });
       } else {
         res.json({
