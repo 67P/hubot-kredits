@@ -1,5 +1,8 @@
 const util = require('util');
 const fetch = require('node-fetch');
+const session = require('express-session');
+const grant = require('grant-express');
+const cors = require('cors');
 const amountFromLabels = require('./utils/amount-from-labels');
 const kindFromLabels = require('./utils/kind-from-labels');
 
@@ -20,6 +23,8 @@ module.exports = async function(robot, kredits) {
     repoBlackList = process.env.KREDITS_GITHUB_REPO_BLACKLIST.split(',');
     robot.logger.debug('[hubot-kredits] Ignoring GitHub actions from ', util.inspect(repoBlackList));
   }
+
+  const kreditsWebUrl = process.env.KREDITS_WEB_URL || 'https://kredits.kosmos.org';
 
   const Contributor = kredits.Contributor;
   const Contribution = kredits.Contribution;
@@ -172,4 +177,95 @@ module.exports = async function(robot, kredits) {
     }
   });
 
+  //
+  // GitHub signup
+  //
+
+  if (process.env.GITHUB_KEY && process.env.GITHUB_SECRET) {
+    const grantConfig = {
+      defaults: {
+        protocol: (process.env.GRANT_PROTOCOL || "http"),
+        host: (process.env.GRANT_HOST || 'localhost:8888'),
+        transport: 'session',
+        response: 'tokens',
+        path: '/kredits/signup'
+      },
+      github: {
+        key: process.env.GITHUB_KEY,
+        secret: process.env.GITHUB_SECRET,
+        callback: '/kredits/signup/github'
+      }
+    };
+
+    robot.router.use(session({ secret: process.env.SESSION_SECRET || 'grant' }));
+    robot.router.use('/kredits/signup', grant(grantConfig));
+
+    robot.router.get('/kredits/signup/github', async (req, res) => {
+      const access_token = req.session.grant.response.access_token;
+
+      res.redirect(`${kreditsWebUrl}/signup/github#access_token=${access_token}`);
+    });
+
+    robot.router.options('/kredits/signup/github', cors());
+
+    robot.router.post('/kredits/signup/github', cors(), async (req, res) => {
+      const accessToken = req.body.accessToken;
+      if (!accessToken) {
+        res.status(400).json({});
+        return;
+      }
+      try {
+        const githubResponse = await fetch('https://api.github.com/user', {
+          headers: {
+            'Accept': 'application/vnd.github.v3+json',
+            'Authorization': `token ${accessToken}`
+          }
+        });
+      } catch (error) {
+        robot.logger.error('[hubot-kredits] Fetching user data from GitHub failed:', error);
+        res.status(500).json({ error });
+      };
+
+      if (githubResponse.status >= 300) {
+        res.status(githubResponse.status).json({});
+        return;
+      }
+      const user = await githubResponse.json();
+
+      const contributor = await kredits.Contributor.findByAccount({
+        site: 'github.com',
+        username: user.login
+      });
+
+      if (!contributor) {
+        let contributorAttr = {};
+        contributorAttr.account = req.body.account;
+        contributorAttr.name = user.name || user.login;
+        contributorAttr.kind = "person";
+        contributorAttr.url = user.blog;
+        contributorAttr.github_username = user.login;
+        contributorAttr.github_uid = user.id;
+
+        kredits.Contributor.add(contributorAttr, { gasLimit: 350000 })
+          .then(transaction => {
+            robot.logger.info('[hubot-kredits] Contributor added from GitHub signup', transaction.hash);
+            res.status(201);
+            res.json({
+              transactionHash: transaction.hash,
+              github_username: user.login
+            });
+          }, error => {
+            robot.logger.error(`[hubot-kredits] Adding contributor failed: ${error}`);
+            res.status(422);
+            res.json({ error })
+          });
+      } else {
+        res.json({
+          github_username: user.login
+        });
+      }
+    });
+  } else {
+    robot.logger.warning('[hubot-kredits] No GITHUB_KEY and GITHUB_SECRET configured for OAuth signup');
+  }
 };
