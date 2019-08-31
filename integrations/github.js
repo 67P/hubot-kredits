@@ -181,23 +181,23 @@ module.exports = async function(robot, kredits) {
   // GitHub signup
   //
 
-  if (process.env.GITHUB_KEY && process.env.GITHUB_SECRET) {
+  if (process.env.KREDITS_GITHUB_KEY && process.env.KREDITS_GITHUB_SECRET) {
     const grantConfig = {
       defaults: {
-        protocol: (process.env.GRANT_PROTOCOL || "http"),
-        host: (process.env.GRANT_HOST || 'localhost:8888'),
+        protocol: (process.env.KREDITS_GRANT_PROTOCOL || "http"),
+        host: (process.env.KREDITS_GRANT_HOST || 'localhost:8888'),
         transport: 'session',
         response: 'tokens',
         path: '/kredits/signup'
       },
       github: {
-        key: process.env.GITHUB_KEY,
-        secret: process.env.GITHUB_SECRET,
+        key: process.env.KREDITS_GITHUB_KEY,
+        secret: process.env.KREDITS_GITHUB_SECRET,
         callback: '/kredits/signup/github'
       }
     };
 
-    robot.router.use(session({ secret: process.env.SESSION_SECRET || 'grant' }));
+    robot.router.use(session({ secret: process.env.KREDITS_SESSION_SECRET || 'grant' }));
     robot.router.use('/kredits/signup', grant(grantConfig));
 
     robot.router.get('/kredits/signup/github', async (req, res) => {
@@ -266,6 +266,6 @@ module.exports = async function(robot, kredits) {
       }
     });
   } else {
-    robot.logger.warning('[hubot-kredits] No GITHUB_KEY and GITHUB_SECRET configured for OAuth signup');
+    robot.logger.warning('[hubot-kredits] No KREDITS_GITHUB_KEY and KREDITS_GITHUB_SECRET configured for OAuth signup');
   }
 };
