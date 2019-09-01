@@ -214,8 +214,9 @@ module.exports = async function(robot, kredits) {
         res.status(400).json({});
         return;
       }
+      let githubResponse;
       try {
-        const githubResponse = await fetch('https://api.github.com/user', {
+        githubResponse = await fetch('https://api.github.com/user', {
           headers: {
             'Accept': 'application/vnd.github.v3+json',
             'Authorization': `token ${accessToken}`
