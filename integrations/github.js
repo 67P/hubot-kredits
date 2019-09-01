@@ -197,7 +197,12 @@ module.exports = async function(robot, kredits) {
       }
     };
 
-    robot.router.use(session({ secret: process.env.KREDITS_SESSION_SECRET || 'grant' }));
+    robot.router.use(session({
+      secret: process.env.KREDITS_SESSION_SECRET || 'grant',
+      resave: false,
+      saveUninitialized: false
+    }));
+
     robot.router.use('/kredits/signup', grant(grantConfig));
 
     robot.router.get('/kredits/signup/github', async (req, res) => {
