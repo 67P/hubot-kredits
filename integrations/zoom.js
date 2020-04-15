@@ -72,7 +72,7 @@ module.exports = async function(robot, kredits) {
     });
   }
 
-  robot.router.post('/incoming/kredits/zoom'+process.env.KREDITS_WEBHOOK_TOKEN, (req, res) => {
+  robot.router.post('/incoming/kredits/zoom/'+process.env.KREDITS_WEBHOOK_TOKEN, (req, res) => {
     let data = req.body;
     const eventName = data.event;
     const payload = data.payload;
