@@ -22,7 +22,7 @@ module.exports = async function(robot, kredits) {
       .then(contributor => {
         if (!contributor) {
           robot.logger.error(`[hubot-kredits] Contributor not found: Zoom display name: ${displayName}`);
-          messageRoom(`I tried to add a contribution for zoom user ${displayName}, but did not find a matchig contributor profile.`);
+          messageRoom(`I tried to add a contribution for zoom user ${displayName}, but did not find a matching contributor profile.`);
           return;
         }
         const contribution = {
