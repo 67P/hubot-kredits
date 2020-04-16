@@ -61,13 +61,13 @@ module.exports = async function(robot, kredits) {
     const participants = await getMeetingParticipants(data.uuid);
 
     if (meetingDetails.duration < 15 || meetingDetails.participants_count < 3) {
-      robot.logger.info(`[hubot-kredits] ignoring meeting: uuid:${data.uuid} duration:${meetingDetails.duration} participants_count:${meetingDetails.participants_count}`);
+      robot.logger.info(`[hubot-kredits] Ignoring zoom call ${data.uuid} (duration: ${meetingDetails.duration}, participants_count: ${meetingDetails.participants_count})`);
       return;
     }
     participants.forEach(p => {
       createContributionFor(p, meetingDetails)
         .then(tx => {
-          robot.logger.info(`[hubot-kredits] contribution created: ${tx.hash}`);
+          robot.logger.info(`[hubot-kredits] Contribution created: ${tx.hash}`);
         })
     });
   }
