@@ -1,8 +1,7 @@
 const fetch = require('node-fetch');
 
 module.exports = async function(robot, kredits) {
-  const Contributor = kredits.Contributor;
-  const Contribution = kredits.Contribution;
+  const { Contributor, Contribution } = kredits;
 
   const kreditsContributionAmount = 500;
   const kreditsContributionKind = 'community';
@@ -17,7 +16,7 @@ module.exports = async function(robot, kredits) {
 
     return getContributorByZoomDisplayName(displayName)
       .then(contributor => {
-        let contribution = {
+        const contribution = {
           contributorId: contributor.id,
           contributorIpfsHash: contributor.ipfsHash,
           amount: kreditsContributionAmount,
