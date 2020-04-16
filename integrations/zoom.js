@@ -1,6 +1,11 @@
 const fetch = require('node-fetch');
 
 module.exports = async function(robot, kredits) {
+
+  function messageRoom(message) {
+    robot.messageRoom(process.env.KREDITS_ROOM, message);
+  }
+
   const { Contributor, Contribution } = kredits;
 
   const kreditsContributionAmount = 500;
@@ -15,6 +20,11 @@ module.exports = async function(robot, kredits) {
 
     return getContributorByZoomDisplayName(displayName)
       .then(contributor => {
+        if (!contributor) {
+          robot.logger.error(`[hubot-kredits] Contributor not found: Zoom display name: ${displayName}`);
+          messageRoom(`I tried to add a contribution for zoom user ${displayName}, but did not find a matchig contributor profile.`);
+          return;
+        }
         const contribution = {
           contributorId: contributor.id,
           contributorIpfsHash: contributor.ipfsHash,
@@ -25,7 +35,7 @@ module.exports = async function(robot, kredits) {
           time: meeting.end_time.split('T')[1]
         }
 
-        return Contribution.addContribution(contribution, { nonce: nonce++ })
+        return Contribution.add(contribution, { nonce: nonce++ })
           .catch(error => {
             robot.logger.error(`[hubot-kredits] Adding contribution failed:`, error);
           });
@@ -66,7 +76,9 @@ module.exports = async function(robot, kredits) {
     for(const displayName of names) {
       await createContributionFor(displayName, meetingDetails)
         .then(tx => {
-          robot.logger.info(`[hubot-kredits] Contribution created: ${tx.hash}`);
+          if (tx) {
+            robot.logger.info(`[hubot-kredits] Contribution created: ${tx.hash}`);
+          }
         });
     };
   }
