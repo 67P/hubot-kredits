@@ -152,7 +152,9 @@ module.exports = async function(robot) {
   require('./integrations/github')(robot, kredits);
   require('./integrations/gitea')(robot, kredits);
 
-  require('./integrations/zoom')(robot, kredits);
+  if (typeof process.env.KREDITS_ZOOM_JWT !== 'undefined') {
+    require('./integrations/zoom')(robot, kredits);
+  }
 
   if (typeof process.env.KREDITS_MEDIAWIKI_URL !== 'undefined') {
     require('./integrations/mediawiki')(robot, kredits);
