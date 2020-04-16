@@ -69,13 +69,12 @@ module.exports = async function(robot, kredits) {
   async function handleZoomMeetingEnded(data) {
     const meetingDetails = await getMeetingDetails(data.uuid);
     const participants = await getMeetingParticipants(data.uuid);
+    const names = Array.from(new Set(participants.map(p => p.name)));
 
-    if (meetingDetails.duration < 15 || meetingDetails.participants_count < 3) {
+    if (meetingDetails.duration < 15 || names.length < 3) {
       robot.logger.info(`[hubot-kredits] Ignoring zoom call ${data.uuid} (duration: ${meetingDetails.duration}, participants_count: ${meetingDetails.participants_count})`);
       return;
     }
-
-    const names = Array.from(new Set(participants.map(p => p.name)));
 
     for (const displayName of names) {
       await createContributionFor(displayName, meetingDetails);
