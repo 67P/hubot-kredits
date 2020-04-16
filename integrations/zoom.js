@@ -11,8 +11,7 @@ module.exports = async function(robot, kredits) {
   const walletTransactionCount = await kredits.provider.getTransactionCount(kredits.signer.address);
   let nonce = walletTransactionCount;
 
-  function createContributionFor(participant, meeting) {
-    const displayName = participant.name;
+  function createContributionFor(displayName, meeting) {
 
     return getContributorByZoomDisplayName(displayName)
       .then(contributor => {
@@ -21,7 +20,7 @@ module.exports = async function(robot, kredits) {
           contributorIpfsHash: contributor.ipfsHash,
           amount: kreditsContributionAmount,
           kind: kreditsContributionKind,
-          description: `Team meeting: ${meeting.topic}`,
+          description: 'Team/Community Call',
           date: meeting.end_time.split('T')[0],
           time: meeting.end_time.split('T')[1]
         }
@@ -63,12 +62,13 @@ module.exports = async function(robot, kredits) {
       robot.logger.info(`[hubot-kredits] Ignoring zoom call ${data.uuid} (duration: ${meetingDetails.duration}, participants_count: ${meetingDetails.participants_count})`);
       return;
     }
-    participants.forEach(p => {
-      createContributionFor(p, meetingDetails)
+    const names = Array.from(new Set(participants.map(p => p.name)));
+    for(const displayName of names) {
+      await createContributionFor(displayName, meetingDetails)
         .then(tx => {
           robot.logger.info(`[hubot-kredits] Contribution created: ${tx.hash}`);
-        })
-    });
+        });
+    };
   }
 
   robot.router.post('/incoming/kredits/zoom/'+process.env.KREDITS_WEBHOOK_TOKEN, (req, res) => {
