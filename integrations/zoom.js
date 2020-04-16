@@ -74,12 +74,11 @@ module.exports = async function(robot, kredits) {
     }
     const names = Array.from(new Set(participants.map(p => p.name)));
     for(const displayName of names) {
-      await createContributionFor(displayName, meetingDetails)
-        .then(tx => {
-          if (tx) {
-            robot.logger.info(`[hubot-kredits] Contribution created: ${tx.hash}`);
-          }
-        });
+      const tx = createContributionFor(displayName, meetingDetails)
+      // if the contributor is not found we do not get a transaction object here
+      if (tx) {
+        robot.logger.info(`[hubot-kredits] Contribution created: ${tx.hash}`);
+      }
     };
   }
 
