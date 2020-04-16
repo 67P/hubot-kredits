@@ -16,30 +16,32 @@ module.exports = async function(robot, kredits) {
   const walletTransactionCount = await kredits.provider.getTransactionCount(kredits.signer.address);
   let nonce = walletTransactionCount;
 
-  function createContributionFor(displayName, meeting) {
+  async function createContributionFor (displayName, meeting) {
+    const contributor = await getContributorByZoomDisplayName(displayName);
 
-    return getContributorByZoomDisplayName(displayName)
-      .then(contributor => {
-        if (!contributor) {
-          robot.logger.error(`[hubot-kredits] Contributor not found: Zoom display name: ${displayName}`);
-          messageRoom(`I tried to add a contribution for zoom user ${displayName}, but did not find a matching contributor profile.`);
-          return;
-        }
-        const contribution = {
-          contributorId: contributor.id,
-          contributorIpfsHash: contributor.ipfsHash,
-          amount: kreditsContributionAmount,
-          kind: kreditsContributionKind,
-          description: 'Team/Community Call',
-          date: meeting.end_time.split('T')[0],
-          time: meeting.end_time.split('T')[1]
-        }
+    if (!contributor) {
+      robot.logger.info(`[hubot-kredits] Contributor not found: Zoom display name: ${displayName}`);
+      messageRoom(`I tried to add a contribution for zoom user ${displayName}, but did not find a matching contributor profile.`);
+      return Promise.resolve();
+    }
 
-        return Contribution.add(contribution, { nonce: nonce++ })
-          .catch(error => {
-            robot.logger.error(`[hubot-kredits] Adding contribution failed:`, error);
-          });
+    const contribution = {
+      contributorId: contributor.id,
+      contributorIpfsHash: contributor.ipfsHash,
+      amount: kreditsContributionAmount,
+      kind: kreditsContributionKind,
+      description: 'Team/Community Call',
+      date: meeting.end_time.split('T')[0],
+      time: meeting.end_time.split('T')[1]
+    }
+
+    return Contribution.add(contribution, { nonce: nonce++ })
+      .then(tx => {
+        robot.logger.info(`[hubot-kredits] Contribution created: ${tx.hash}`);
       })
+      .catch(error => {
+        robot.logger.error(`[hubot-kredits] Adding contribution for Zoom call failed:`, error);
+      });
   }
 
   function getContributorByZoomDisplayName(displayName) {
@@ -72,13 +74,11 @@ module.exports = async function(robot, kredits) {
       robot.logger.info(`[hubot-kredits] Ignoring zoom call ${data.uuid} (duration: ${meetingDetails.duration}, participants_count: ${meetingDetails.participants_count})`);
       return;
     }
+
     const names = Array.from(new Set(participants.map(p => p.name)));
-    for(const displayName of names) {
-      const tx = createContributionFor(displayName, meetingDetails)
-      // if the contributor is not found we do not get a transaction object here
-      if (tx) {
-        robot.logger.info(`[hubot-kredits] Contribution created: ${tx.hash}`);
-      }
+
+    for (const displayName of names) {
+      await createContributionFor(displayName, meetingDetails);
     };
   }
 
