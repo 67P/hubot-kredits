@@ -120,7 +120,7 @@ wiki's API on its own.
 
 ### Zoom
 
-The Zoom integation creates contributions for meeting participations.
+The Zoom integration creates contributions for meeting participations.
 
 Every meeting that is longer than 15 minutes and with more than 2 participants will be registered.
 An optional meeting whitelist can be configured to create contributions only for specific meetings.
@@ -128,7 +128,7 @@ An optional meeting whitelist can be configured to create contributions only for
 
 #### Setup
 
-A Zoom app has to be setup and an [event webhook subscription](https://marketplace.zoom.us/docs/api-reference/webhook-reference/meeting-events/meeting-ending")
+A Zoom JWT app has to be set up and an [event webhook subscription](https://marketplace.zoom.us/docs/api-reference/webhook-reference/meeting-events/meeting-ending")
 on `meeting.ended` has to be configured to the following URL:
 
     https://your-hubot.example.com/incoming/kredits/zoom/{webhook_token}
