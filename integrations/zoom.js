@@ -89,8 +89,7 @@ module.exports = async function(robot, kredits) {
 
 
     if (eventName === 'meeting.ended' && (
-        !process.env.KREDITS_ZOOM_MEETING_WHITELIST ||
-          process.env.KREDITS_ZOOM_MEETING_WHITELIST.split(',').includes(object.id)
+        process.env.KREDITS_ZOOM_MEETING_WHITELIST?.split(',').includes(object.id)
       )) {
       handleZoomMeetingEnded(object);
     }
