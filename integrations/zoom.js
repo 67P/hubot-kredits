@@ -8,7 +8,7 @@ module.exports = async function(robot, kredits) {
 
   const { Contributor, Contribution } = kredits;
 
-  const kreditsContributionAmount = 500;
+  const kreditsContributionAmount = process.env.KREDITS_ZOOM_CONTRIBUTION_AMOUNT || 500;
   const kreditsContributionKind = 'community';
 
   const zoomAccessToken = process.env.KREDITS_ZOOM_JWT;
