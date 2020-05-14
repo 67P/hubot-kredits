@@ -116,3 +116,29 @@ wiki's API on its own.
 
 [kredits-contracts]: https://github.com/67P/kredits-contracts
 [GitHub OAuth app]: https://developer.github.com/apps/about-apps/#about-oauth-apps
+
+
+### Zoom
+
+The Zoom integation creates contributions for meeting participations.
+
+Every meeting that is longer than 15 minutes and with more than 2 participants will be registered.
+An optional meeting whitelist can be configured to create contributions only for specific meetings.
+
+
+#### Setup
+
+A Zoom app has to be setup and an [event webhook subscription](https://marketplace.zoom.us/docs/api-reference/webhook-reference/meeting-events/meeting-ending")
+on `meeting.ended` has to be configured to the following URL:
+
+    https://your-hubot.example.com/incoming/kredits/zoom/{webhook_token}
+
+#### Config
+
+| Key | Description |
+| --- | --- |
+| `KREDITS_ZOOM_JWT` | The JWT for the Zoom application (required)
+| `KREDITS_ZOOM_MEETING_WHITELIST` | Comma separated list of meeting names for which kredits should be tracked (optional)
+| `KREDITS_ZOOM_CONTRIBUTION_AMOUNT` | The amount of kredits issued for each meeting. (default: 500)
+
+[Zoom apps](https://marketplace.zoom.us/user/build)
