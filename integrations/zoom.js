@@ -8,7 +8,7 @@ module.exports = async function(robot, kredits) {
 
   const { Contributor, Contribution } = kredits;
 
-  const kreditsContributionAmount = 500;
+  const kreditsContributionAmount = process.env.KREDITS_ZOOM_CONTRIBUTION_AMOUNT || 500;
   const kreditsContributionKind = 'community';
 
   const zoomAccessToken = process.env.KREDITS_ZOOM_JWT;
@@ -87,7 +87,11 @@ module.exports = async function(robot, kredits) {
     const payload = data.payload;
     const object = payload.object;
 
-    if (eventName === 'meeting.ended') {
+
+    if (eventName === 'meeting.ended' && (
+        !process.env.KREDITS_ZOOM_MEETING_WHITELIST ||
+          process.env.KREDITS_ZOOM_MEETING_WHITELIST.split(',').includes(object.id)
+      )) {
       handleZoomMeetingEnded(object);
     }
 
