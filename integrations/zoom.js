@@ -1,5 +1,9 @@
 const fetch = require('node-fetch');
 
+function sleep(ms) {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
 module.exports = async function(robot, kredits) {
 
   function messageRoom(message) {
@@ -12,9 +16,6 @@ module.exports = async function(robot, kredits) {
   const kreditsContributionKind = 'community';
 
   const zoomAccessToken = process.env.KREDITS_ZOOM_JWT;
-
-  const walletTransactionCount = await kredits.provider.getTransactionCount(kredits.signer.address);
-  let nonce = walletTransactionCount;
 
   async function createContributionFor (displayName, meeting) {
     const contributor = await getContributorByZoomDisplayName(displayName);
@@ -35,7 +36,7 @@ module.exports = async function(robot, kredits) {
       time: meeting.end_time.split('T')[1]
     }
 
-    return Contribution.add(contribution, { nonce: nonce++ })
+    return Contribution.add(contribution)
       .then(tx => {
         robot.logger.info(`[hubot-kredits] Contribution created: ${tx.hash}`);
       })
@@ -78,6 +79,7 @@ module.exports = async function(robot, kredits) {
 
     for (const displayName of names) {
       await createContributionFor(displayName, meetingDetails);
+      await sleep(60000); // potentially to prevent too many transactions at the sametime. transactions need to be ordered because of the nonce. not sure though if this is needed.
     };
   }
 
