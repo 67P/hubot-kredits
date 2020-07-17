@@ -19,7 +19,7 @@
     "grant-express": "^4.6.1",
     "group-array": "^1.0.0",
     "kosmos-schemas": "^1.1.2",
-    "kredits-contracts": "github:67P/kredits-contracts#ethers5",
+    "kredits-contracts": "^6.0.0",
     "node-cron": "^2.0.3",
     "node-fetch": "^2.3.0",
     "prompt": "^1.0.0"
