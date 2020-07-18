@@ -2,6 +2,7 @@ const fs = require('fs');
 const util = require('util');
 const fetch = require('node-fetch');
 const ethers = require('ethers');
+const NonceManager = require('@ethersproject/experimental').NonceManager;
 const Kredits = require('kredits-contracts');
 
 const walletPath  = process.env.KREDITS_WALLET_PATH || './wallet.json';
@@ -43,7 +44,7 @@ module.exports = async function(robot) {
   } else {
     ethProvider = new ethers.getDefaultProvider('rinkeby');
   }
-  const signer = wallet.connect(ethProvider);
+  const signer = new NonceManager(wallet.connect(ethProvider));
 
   //
   // Kredits contracts setup
