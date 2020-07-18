@@ -12,7 +12,7 @@
   "dependencies": {
     "cors": "^2.8.5",
     "eth-provider": "^0.2.2",
-    "ethers": "^5.0.2",
+    "ethers": "^5.0.5",
     "@ethersproject/experimental": "5.0.0",
     "express": "^4.17.1",
     "express-session": "^1.16.2",
