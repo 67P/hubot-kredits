@@ -61,7 +61,7 @@ module.exports = async function(robot, kredits) {
       robot.logger.debug(`[hubot-kredits] contribution attributes:`);
       robot.logger.debug(util.inspect(contributionAttr, { depth: 1, colors: true }));
 
-      return Contribution.addContribution(contributionAttr).catch(error => {
+      return Contribution.add(contributionAttr).catch(error => {
         robot.logger.error(`[hubot-kredits] Error:`, error);
         messageRoom(`I tried to add a contribution for ${githubUser} for ${url}, but I encountered an error when submitting the tx:`);
         messageRoom(error.message);
