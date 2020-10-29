@@ -145,6 +145,7 @@ module.exports = async function(robot, kredits) {
     const dateNow = new Date();
     const dateYesterday = dateNow.setDate(dateNow.getDate() - 1);
     const date = (new Date(dateYesterday)).toISOString().split('T')[0];
+    const details = analyzeUserChanges(user, changes);
     const amount = 500;
 
     let desc = `Added ${details.charsAdded} characters of text.`;
