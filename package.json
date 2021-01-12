@@ -7,13 +7,15 @@
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "bin": {
-    "create-wallet": "scripts/create-wallet.js"
+    "create-wallet": "scripts/create-wallet.js",
+    "review-kredits": "scripts/review-kredits.js"
   },
   "dependencies": {
+    "@ethersproject/experimental": "5.0.0",
     "cors": "^2.8.5",
+    "dotenv": "^8.2.0",
     "eth-provider": "^0.2.2",
     "ethers": "^5.0.5",
-    "@ethersproject/experimental": "5.0.0",
     "express": "^4.17.1",
     "express-session": "^1.16.2",
     "grant-express": "^4.6.1",
@@ -22,7 +24,8 @@
     "kredits-contracts": "^6.0.0",
     "node-cron": "^2.0.3",
     "node-fetch": "^2.3.0",
-    "prompt": "^1.0.0"
+    "prompt": "^1.0.0",
+    "yargs": "^16.2.0"
   },
   "repository": {
     "type": "git",
@@ -36,7 +39,8 @@
   "author": "Kosmos Developers <mail@kosmos.org>",
   "contributors": [
     "Sebastian Kippe <sebastian@kip.pe>",
-    "Michael Bumann <hello@michaelbumann.com>"
+    "Michael Bumann <hello@michaelbumann.com>",
+    "Garret Alfert <alfert@wevelop.de>"
   ],
   "license": "MIT",
   "bugs": {
