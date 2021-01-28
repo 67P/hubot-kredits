@@ -24,7 +24,6 @@ module.exports = class GiteaReviews {
   }
 
   async getReviewContributions (repos, startDate, endDate) {
-    let pulls = [];
     let reviewContributions = {}
 
     await Promise.all(repos.map(async (repo) => {
