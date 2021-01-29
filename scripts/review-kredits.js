@@ -115,7 +115,8 @@ async function initializeKredits () {
   return kredits;
 }
 
-async function generateContributionData(reviews, Contributor) {
+async function generateContributionData(reviews, Contributor, startDate, endDate) {
+  const dateFormatOptions = { year: 'numeric', month: 'long', day: 'numeric' };
   const contributors = await Contributor.all();
   const contributionData = {};
   const now = (new Date()).toISOString().split('.')[0]+"Z";
@@ -141,6 +142,9 @@ async function generateContributionData(reviews, Contributor) {
         contributionData[contributor.name].amount += kreditsAmount;
         contributionData[contributor.name].details.pullRequests.push(...urls);
       } else {
+        const formattedStartDate = startDate.toLocaleString('en-us', dateFormatOptions);
+        const formattedEndDate = endDate.toLocaleString('en-us', dateFormatOptions);
+
         contributionData[contributor.name] = {
           contributorId: contributor.id,
           contributorIpfsHash: contributor.ipfsHash,
@@ -148,7 +152,7 @@ async function generateContributionData(reviews, Contributor) {
           time,
           amount: kreditsAmount,
           kind: 'dev',
-          description: 'PR reviews', // TODO add timeframe to description
+          description: `PR reviews from ${formattedStartDate} to ${formattedEndDate}`,
           details: {
             'pullRequests': urls
           }
@@ -167,7 +171,7 @@ Promise.all([initializeKredits(), getAllReviews(repos, startDate, endDate)]).the
   const kredits = values[0];
   const reviews = values[1];
 
-  generateContributionData(reviews, kredits.Contributor).then(contributionData => {
+  generateContributionData(reviews, kredits.Contributor, startDate, endDate).then(contributionData => {
     if (argv.dry) {
       console.log('contributions:');
       console.log(util.inspect(contributionData, { depth: 3, colors: true }));
