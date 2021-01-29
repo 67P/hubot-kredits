@@ -67,6 +67,12 @@ if (isNaN(endTimestamp)) {
   process.exit(1);
 }
 
+// check for existence of GITHUB_TOKEN and GITEA_TOKEN
+if (!process.env.GITHUB_TOKEN || !process.env.GITEA_TOKEN) {
+  console.log('Please set both GITHUB_TOKEN and GITEA_TOKEN');
+  process.exit(1);
+}
+
 const startDate = new Date(startTimestamp);
 const endDate = new Date(endTimestamp);
 
