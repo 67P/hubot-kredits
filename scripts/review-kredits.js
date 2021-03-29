@@ -5,12 +5,15 @@ const GiteaReviews = require('./lib/gitea-reviews');
 const GithubReviews = require('./lib/github-reviews');
 
 const ethers = require('ethers');
+const NonceManager = require('@ethersproject/experimental').NonceManager;
 const Kredits = require('kredits-contracts');
 const util = require('util');
 
 const yargs = require('yargs/yargs')
 const { hideBin } = require('yargs/helpers')
 
+const walletPath  = process.env.KREDITS_WALLET_PATH || '../wallet.json';
+const walletJson  = require(walletPath);
 const providerUrl = process.env.KREDITS_PROVIDER_URL;
 const daoAddress  = process.env.KREDITS_DAO_ADDRESS;
 
@@ -84,12 +87,23 @@ async function getAllReviews(repos, startDate, endDate) {
     githubReviews.getReviewContributions(repos.github, startDate, endDate),
     giteaReviews.getReviewContributions(repos.gitea, startDate, endDate)
   ]).then(reviews => {
-    // console.log(util.inspect(reviews[0], { depth: 3, colors: true }));
     return { github: reviews[0], gitea: reviews[1] }
   });
 }
 
 async function initializeKredits () {
+  //
+  // Ethereum wallet setup
+  //
+
+  let wallet;
+  try {
+    wallet = await ethers.Wallet.fromEncryptedJson(walletJson, process.env.KREDITS_WALLET_PASSWORD);
+  } catch(error) {
+    console.log('Could not load wallet:', error);
+    process.exit(1);
+  }
+
   //
   // Ethereum provider/node setup
   //
@@ -100,6 +114,7 @@ async function initializeKredits () {
   } else {
     ethProvider = new ethers.getDefaultProvider('rinkeby');
   }
+  const signer = new NonceManager(wallet.connect(ethProvider));
 
   //
   // Kredits contracts setup
@@ -112,13 +127,24 @@ async function initializeKredits () {
   let kredits;
 
   try {
-    kredits = await new Kredits(ethProvider, null, opts).init();
+    kredits = await new Kredits(signer.provider, signer, opts).init();
   } catch(error) {
     console.log('Could not set up kredits:', error);
     process.exit(1);
   }
 
   return kredits;
+}
+
+function createContribution(contributorName, contributionAttributes, Contribution) {
+  console.log(`Creating contribution token for ${contributionAttributes.amount}₭S to ${contributorName} for ${contributionAttributes.description}...`);
+
+  return Contribution.add(contributionAttributes).catch(error => {
+    console.log(`I tried to add a contribution for ${contributorName}, but I encountered an error when submitting the tx:`);
+    console.log(`Error:`, error);
+    console.log('Contribution attributes:');
+    console.log(util.inspect(contributionAttributes, { depth: 2, colors: true }));
+  });
 }
 
 async function generateContributionData(reviews, Contributor, startDate, endDate) {
@@ -179,11 +205,14 @@ Promise.all([initializeKredits(), getAllReviews(repos, startDate, endDate)]).the
 
   generateContributionData(reviews, kredits.Contributor, startDate, endDate).then(contributionData => {
     if (argv.dry) {
-      console.log('contributions:');
+      console.log('Contributions:');
       console.log(util.inspect(contributionData, { depth: 3, colors: true }));
+    } else {
+      // create contributions
+      for (const [username, contributionAttributes] of Object.entries(contributionData)) {
+        createContribution(username, contributionAttributes, kredits.Contribution);
+      }
     }
-
-    // TODO create contributions
   });
 });
 
