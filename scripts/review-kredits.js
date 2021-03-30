@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-require('dotenv').config({ path: '../.env' });
+require('dotenv').config({ path: '.env' });
 const GiteaReviews = require('./lib/gitea-reviews');
 const GithubReviews = require('./lib/github-reviews');
 
@@ -9,11 +9,12 @@ const NonceManager = require('@ethersproject/experimental').NonceManager;
 const Kredits = require('kredits-contracts');
 const util = require('util');
 
-const yargs = require('yargs/yargs')
-const { hideBin } = require('yargs/helpers')
+const yargs = require('yargs/yargs');
+const { hideBin } = require('yargs/helpers');
+const fs = require('fs');
 
 const walletPath  = process.env.KREDITS_WALLET_PATH || '../wallet.json';
-const walletJson  = require(walletPath);
+const walletJson  = fs.readFileSync(walletPath);
 const providerUrl = process.env.KREDITS_PROVIDER_URL;
 const daoAddress  = process.env.KREDITS_DAO_ADDRESS;
 
