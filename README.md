@@ -1,4 +1,4 @@
-[![npm](https://img.shields.io/npm/v/hubot-kredits.svg)](https://www.npmjs.com/package/hubot-kredits)
+[![npm](https://img.shields.io/npm/v/@kredits/hubot-kredits.svg)](https://www.npmjs.com/package/@kredits/hubot-kredits)
 
 # Hubot Kredits
 
