@@ -10,14 +10,19 @@ contributions.
 
 ## Setup
 
-### Ethereum wallet
+### Wallet
 
-You will need an Ethereum wallet for your bot, so it can interact with the
-Ethereum smart contracts. `npm run create-wallet` will do the job for you.
+You will need a keypair/wallet for your bot, so it can interact with the smart
+contracts. `npm run create-wallet` will do the job for you.
 
-The wallet must be funded with enough ETH to interact with the contracts.
+The wallet must be funded with enough native chain tokens to interact with the
+contracts (i.e. it must be able to pay gas/tx fees)
 
 ### Contract permissions
+
+**Warning: outdated instructions!**
+
+*TODO adapt instructions for new permission model*
 
 The bot wallet needs the following Aragon contract permissions to interact
 with [kredits-contracts]:
@@ -41,11 +46,10 @@ As usual in Hubot, you can add all config as environment variables.
 | --- | --- |
 | `KREDITS_WEBHOOK_TOKEN` | A string for building your secret webhook URLs |
 | `KREDITS_ROOM` | The bot will talk to you in this room |
-| `KREDITS_WALLET_PATH` | Path to an Etherum wallet JSON file (default: `./wallet.json`) |
+| `KREDITS_WALLET_PATH` | Path to an wallet JSON file (default: `./wallet.json`) |
 | `KREDITS_WALLET_PASSWORD` | Wallet password |
-| `KREDITS_PROVIDER_URL` | Ethereum JSON-RPC URL (default: `http://localhost:7545`) |
+| `KREDITS_PROVIDER_URL` | JSON-RPC URL of a blockchain node (default: `http://localhost:7545`) |
 | `KREDITS_WEB_URL` | URL of the Kredits Web app (default: `https://kredits.kosmos.org`) |
-| `KREDITS_DAO_ADDRESS` | DAO Kernel address |
 | `KREDITS_SESSION_SECRET` | Secret used by [grant](https://www.npmjs.com/package/grant) to sign the session ID |
 | `KREDITS_GRANT_HOST` | Host used by [grant](https://www.npmjs.com/package/grant) to generate OAuth redirect URLs (default: `localhost:8888`) |
 | `KREDITS_GRANT_PROTOCOL` | Protocol (http or https) used by [grant](https://www.npmjs.com/package/grant") to generate the OAuth redirect URLs (default: "http") |

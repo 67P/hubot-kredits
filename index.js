@@ -1,14 +1,11 @@
 const fs = require('fs');
-const util = require('util');
-const fetch = require('node-fetch');
 const ethers = require('ethers');
 const NonceManager = require('@ethersproject/experimental').NonceManager;
-const Kredits = require('kredits-contracts');
+const Kredits = require('@kredits/contracts');
 
 const walletPath  = process.env.KREDITS_WALLET_PATH || './wallet.json';
 const walletJson  = fs.readFileSync(walletPath);
-const providerUrl = process.env.KREDITS_PROVIDER_URL;
-const daoAddress  = process.env.KREDITS_DAO_ADDRESS;
+const providerUrl = process.env.KREDITS_PROVIDER_URL || 'http://localhost:7545';
 
 const ipfsConfig = {
   host: process.env.IPFS_API_HOST || 'localhost',
@@ -38,12 +35,9 @@ module.exports = async function(robot) {
   // Ethereum provider/node setup
   //
 
-  let ethProvider;
-  if (providerUrl) {
-    ethProvider = new ethers.providers.JsonRpcProvider(providerUrl);
-  } else {
-    ethProvider = new ethers.getDefaultProvider('rinkeby');
-  }
+  robot.logger.info('[hubot-kredits] Using blockchain node/API at', providerUrl);
+
+  const ethProvider = new ethers.providers.JsonRpcProvider(providerUrl);
   const signer = new NonceManager(wallet.connect(ethProvider));
 
   //
@@ -51,9 +45,6 @@ module.exports = async function(robot) {
   //
 
   const opts = { ipfsConfig };
-  if (daoAddress) {
-    opts.addresses = { Kernel: daoAddress };
-  }
   let kredits;
 
   try {
@@ -63,8 +54,8 @@ module.exports = async function(robot) {
     process.exit(1);
   }
   const Contributor = kredits.Contributor;
-  const Proposal = kredits.Proposal;
   const Contribution = kredits.Contribution;
+  // TODO const Reimbursement = kredits.Reimbursement;
 
   robot.logger.info('[hubot-kredits] Wallet address: ' + wallet.address);
 
@@ -73,9 +64,9 @@ module.exports = async function(robot) {
   //
 
   ethProvider.getBalance(wallet.address).then(balance => {
-    robot.logger.info('[hubot-kredits] Wallet balance: ' + ethers.utils.formatEther(balance) + 'ETH');
+    robot.logger.info('[hubot-kredits] Wallet balance: ' + ethers.utils.formatEther(balance) + ' RBTC');
     if (balance.lt(ethers.utils.parseEther('0.0001'))) {
-      messageRoom(`Yo gang, I\'m broke! Please drop me some ETH to ${wallet.address}. kthxbai.`);
+      messageRoom(`Yo gang, I\'m broke! Please send some RBTC to ${wallet.address}. kthxbai.`);
     }
   });
 
@@ -83,30 +74,9 @@ module.exports = async function(robot) {
   // Robot chat commands/interaction
   //
 
-  robot.respond(/got ETH\??/i, res => {
+  robot.respond(/got RBTC\??/i, res => {
     ethProvider.getBalance(wallet.address).then((balance) => {
-      res.send(`My wallet contains ${ethers.utils.formatEther(balance)} ETH`);
-    });
-  });
-
-  robot.respond(/propose (\d*)\s?\S*\s?to (\S+)(?:\sfor (.*))?$/i, res => {
-    let [_, amount, githubUser, description] = res.match;
-    let url = null;
-    createProposal(githubUser, amount, description, url).then((result) => {
-      messageRoom('Sounds good! Will be listed on https://kredits.kosmos.org in a bit...');
-    });
-  });
-
-  robot.respond(/list open proposals/i, res => {
-    Proposal.all().then((proposals) => {
-      proposals.forEach((proposal) => {
-        if (!proposal.executed) {
-          Contributor.getById(proposal.contributorId).then((contributor) => {
-            messageRoom(`* ${proposal.amount} kredits to ${contributor.name} for ${proposal.description}`);
-          });
-        }
-      });
-      messageRoom('https://kredits.kosmos.org');
+      res.send(`My wallet contains ${ethers.utils.formatEther(balance)} RBTC`);
     });
   });
 
@@ -115,31 +85,23 @@ module.exports = async function(robot) {
   //
 
   function watchContractEvents() {
-    ethProvider.getBlockNumber().then((blockNumber) => {
+    ethProvider.getBlockNumber().then(blockNumber => {
       // current block is the last mined one, thus we check from the next
       // mined one onwards to prevent getting previous events
       let nextBlock = blockNumber + 1;
       robot.logger.debug(`[hubot-kredits] Watching events from block ${nextBlock} onward`);
       ethProvider.resetEventsBlock(nextBlock);
 
-      Proposal.on('ProposalCreated', handleProposalCreated);
+      // TODO handle all known events (that make sense here)
+      // Contribution.on('ContributorAdded', handleContributorAdded);
       Contribution.on('ContributionAdded', handleContributionAdded);
     });
   }
 
-  function handleProposalCreated(proposalId, creatorAccount, contributorId, amount) {
-    Contributor.getById(contributorId).then((contributor) => {
-      Proposal.getById(proposalId).then((proposal) => {
-        robot.logger.debug(`[hubot-kredits] Proposal created (${proposal.description})`);
-        // messageRoom(`Let's give ${contributor.name} some kredits for ${proposal.url} (${proposal.description}): https://kredits.kosmos.org`);
-      });
-    });
-  }
-
   function handleContributionAdded(contributionId, contributorId, amount) {
-    Contributor.getById(contributorId).then((contributor) => {
-      Contribution.getById(contributionId).then((contribution) => {
-        robot.logger.debug(`[hubot-kredits] Contribution #${contribution.id} added (${contribution.description})`);
+    Contributor.getById(contributorId).then(_ => {
+      Contribution.getById(contributionId).then(contribution => {
+        robot.logger.debug(`[hubot-kredits] Contribution #${contribution.id} added (${amount} kredits for "${contribution.description}")`);
       });
     });
   }
