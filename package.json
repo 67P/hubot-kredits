@@ -12,6 +12,7 @@
   },
   "dependencies": {
     "@ethersproject/experimental": "5.0.0",
+    "@kredits/contracts": "7.0.0",
     "cors": "^2.8.5",
     "dotenv": "^8.2.0",
     "eth-provider": "^0.2.2",
@@ -21,7 +22,6 @@
     "grant-express": "^4.6.1",
     "group-array": "^1.0.0",
     "kosmos-schemas": "^1.1.2",
-    "@kredits/contracts": "git+https://gitea.kosmos.org/kredits/contracts#deploy-rsk",
     "node-cron": "^2.0.3",
     "node-fetch": "^2.3.0",
     "prompt": "^1.0.0",
