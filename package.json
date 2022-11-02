@@ -1,5 +1,5 @@
 {
-  "name": "hubot-kredits",
+  "name": "@kredits/hubot-kredits",
   "version": "4.0.0",
   "description": "Kosmos Kredits functionality for chat bots",
   "main": "index.js",
