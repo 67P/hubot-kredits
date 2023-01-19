@@ -112,14 +112,10 @@ module.exports = async function(robot, kredits) {
   }
 
   async function createContributions (changes) {
-    let promises = [];
-
     for (const user of Object.keys(changes)) {
       await createContributionForUserChanges(user, changes[user]);
       await sleep(60000);
     }
-
-    return Promise.resolve();
   }
 
   function pageTitlesFromChanges(changes) {
