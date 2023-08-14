@@ -1,8 +1,8 @@
 const util = require('util');
 const fetch = require('node-fetch');
 const session = require('express-session');
-const grant = require('grant-express');
 const cors = require('cors');
+const grant = require('grant').express();
 const amountFromLabels = require('./utils/amount-from-labels');
 const kindFromLabels = require('./utils/kind-from-labels');
 
@@ -184,11 +184,10 @@ module.exports = async function(robot, kredits) {
   if (process.env.KREDITS_GITHUB_KEY && process.env.KREDITS_GITHUB_SECRET) {
     const grantConfig = {
       defaults: {
-        protocol: (process.env.KREDITS_GRANT_PROTOCOL || "http"),
-        host: (process.env.KREDITS_GRANT_HOST || 'localhost:8888'),
+        origin: (process.env.KREDITS_GRANT_ORIGIN || 'http://localhost:8888'),
+        prefix: '/kredits/signup/connect',
         transport: 'session',
         response: 'tokens',
-        path: '/kredits/signup'
       },
       github: {
         key: process.env.KREDITS_GITHUB_KEY,
@@ -203,7 +202,7 @@ module.exports = async function(robot, kredits) {
       saveUninitialized: false
     }));
 
-    robot.router.use('/kredits/signup', grant(grantConfig));
+    robot.router.use(grant(grantConfig));
 
     robot.router.get('/kredits/signup/github', async (req, res) => {
       const access_token = req.session.grant.response.access_token;
