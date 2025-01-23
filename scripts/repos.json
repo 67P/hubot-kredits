@@ -1,25 +1,25 @@
 {
   "github": [
-    "67P/botka",
-    "67P/hal8000",
     "67P/hubot-kredits",
     "67P/hubot-remotestorage-logger",
     "67P/hyperchannel",
-    "67P/kosmos-schemas",
-    "67P/kredits-contracts",
     "67P/kredits-signup",
     "67P/kredits-web",
-    "67P/remotestorage-module-kosmos",
     "67P/waves",
     "sockethub/sockethub"
   ],
   "gitea": [
     "kosmos/akkounts",
+    "kosmos/botka",
     "kosmos/chef",
     "kosmos/gitea.kosmos.org",
+    "kosmos/hal8000",
     "kosmos/ipfs-cookbook",
-    "kosmos/kredits-ipfs-pinner",
+    "kosmos/rs-module-kosmos",
+    "kosmos/schemas",
     "kosmos/website",
-    "kosmos/wormhole"
+    "kosmos/wormhole",
+    "kredits/contracts",
+    "kredits/ipfs-pinner"
   ]
 }
