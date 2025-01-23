@@ -1,30 +1,26 @@
-const fetch = require('node-fetch');
+const axios = require('axios');
 
 module.exports = class GithubReviews {
 
-  token = null;
+  client = null;
   kreditsAmounts = null;
   pageLimit = 100;
 
   constructor (token, kreditsAmounts) {
-    this.token = token;
     this.kreditsAmounts = kreditsAmounts;
-  }
 
-  async request (path) {
-    return fetch(
-      `https://api.github.com${path}`,
-      {
-        headers: {
-          'Accept': 'application/vnd.github.v3+json',
-          'User-Agent': 'Kosmos Kredits for reviews',
-          'Authorization': `token ${this.token}`
-        }
+    this.client = axios.create({
+      baseURL: 'https://api.github.com',
+      headers: {
+        'Accept': 'application/vnd.github.v3+json',
+        'User-Agent': 'Kosmos Kredits for reviews',
+        'Authorization': `token ${token}`
       }
-    ).then(response => response.json());
+    });
   }
 
   async getReviewContributions (repos, startDate, endDate) {
+    let pulls = [];
     let reviewContributions = {}
 
     await Promise.all(repos.map(async (repo) => {
@@ -33,17 +29,17 @@ module.exports = class GithubReviews {
 
       do {
         try {
-          result = await this.request(`/repos/${repo}/pulls?state=closed&perPage=${this.pageLimit}&page=${page}`);
+          result = await this.client.get(`/repos/${repo}/pulls?state=closed&perPage=${this.pageLimit}&page=${page}`);
         } catch(error) {
           console.log(`failed to fetch PRs for repo ${repo}:`, error.message);
           continue;
         }
 
-        if (!result || result.length === 0) {
+        if (!result || !result.data || result.data.length === 0) {
           continue;
         }
 
-        let pullRequests = result.filter(pr => {
+        let pullRequests = result.data.filter(pr => {
           if (!pr.merged_at) return false; // only interested in merged PRs
 
           // check if the PR has been merged in the given timeframe
@@ -57,17 +53,17 @@ module.exports = class GithubReviews {
         await Promise.all(pullRequests.map(async (pr) => {
           let reviews;
           try {
-            reviews = await this.request(`/repos/${repo}/pulls/${pr.number}/reviews`);
+            reviews = await this.client.get(`/repos/${repo}/pulls/${pr.number}/reviews`);
           } catch(error) {
             console.log(`failed to fetch reviews for repo ${repo}, PR ${pr.number}:`, error.message);
             return;
           }
 
-          if (!reviews || reviews.length === 0) {
+          if (!reviews || !reviews.data || reviews.data.length === 0) {
             return;
           }
 
-          reviews = reviews.filter(review => {
+          reviews = reviews.data.filter(review => {
             return ['APPROVED', 'REJECTED'].includes(review.state);
           });
 
@@ -89,7 +85,7 @@ module.exports = class GithubReviews {
         }));
 
         page++;
-      } while (result && result.length > 0);
+      } while (result && result.data && result.data.length > 0);
     }));
 
     return reviewContributions;
